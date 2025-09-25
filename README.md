@@ -22,22 +22,48 @@ A data processing and analytics platform for managing SQL workflows across multi
 
 ## Quick Start
 
-1. **Set environment variables:**
+1. **Install MariaDB:**
+```bash
+# macOS
+brew install mariadb
+brew services start mariadb
+
+# Ubuntu/Debian
+sudo apt-get install mariadb-server
+sudo systemctl start mariadb
+
+# CentOS/RHEL
+sudo yum install mariadb-server
+sudo systemctl start mariadb
+```
+
+2. **Setup database:**
+```bash
+# Create database
+mysql -u root -p
+CREATE DATABASE data_phantom;
+EXIT;
+
+# Run DDL script to create tables
+mysql -u root -p data_phantom < src/main/resources/database.ddl
+```
+
+3. **Set environment variables:**
 ```bash
 export AWS_ACCESS_KEY_ID=your_key
 export AWS_SECRET_ACCESS_KEY=your_secret
-export MYSQL_URL=jdbc:mariadb://localhost:3306/your_db
-export MYSQL_USER=your_user
-export MYSQL_PASSWORD=your_pass
+export MYSQL_URL=jdbc:mariadb://localhost:3306/data_phantom
+export MYSQL_USER=root
+export MYSQL_PASSWORD=your_root_password
 ```
 
-2. **Build and run:**
+4. **Build and run:**
 ```bash
 mvn clean install
 java -jar target/annihilator-data-phantom-1.0-SNAPSHOT.jar server src/main/resources/config-dev.yml
 ```
 
-3. **Access:**
+5. **Access:**
 - Backend API: http://localhost:8080
 - Health Check: http://localhost:8081/health
 
