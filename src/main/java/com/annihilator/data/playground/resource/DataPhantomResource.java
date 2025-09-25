@@ -3,6 +3,7 @@ package com.annihilator.data.playground.resource;
 import com.annihilator.data.playground.auth.DataPhantomUser;
 import com.annihilator.data.playground.cloud.aws.EMRService;
 import com.annihilator.data.playground.cloud.aws.S3Service;
+import com.annihilator.data.playground.config.ConcurrencyConfig;
 import com.annihilator.data.playground.config.DataPhantomConfig;
 import com.annihilator.data.playground.connector.MySQLConnector;
 import com.annihilator.data.playground.core.DataPhantomPlaygroundExecutor;
@@ -52,7 +53,7 @@ public class DataPhantomResource {
 
     public DataPhantomResource(DataPhantomConfig config, io.dropwizard.core.setup.Environment environment) {
 
-        this.metaDBConnection = new MetaDBConnection(config.getDatabase(), environment);
+        this.metaDBConnection = new MetaDBConnection(config.getMetaStore(), environment);
 
         this.userDAO = new UserDAOImpl(metaDBConnection);
         this.playgroundDAO = new PlaygroundDAOImpl(metaDBConnection);
@@ -60,22 +61,22 @@ public class DataPhantomResource {
         this.udfDAO = new UDFDAOImpl(metaDBConnection);
         this.historyDAO = new PlaygroundRunHistoryDAOImpl(metaDBConnection);
         this.adhocLimitedInputDAO = new AdhocLimitedInputDAOImpl(metaDBConnection);
-        this.emrService = EMRService.getInstance(config.getAwsEmr(), udfDAO, taskDAO);
-        this.s3Service = S3Service.getInstance(config.getAwsEmr());
-        this.mysqlConnector = new MySQLConnector(config.getConnector().getMysql(), environment, s3Service, config.getAwsEmr().getS3PathPrefix());
-        this.adhocExecutorService = Executors.newFixedThreadPool(100);
-        this.scheduledExecutorService = Executors.newFixedThreadPool(100);
+        this.emrService = EMRService.getInstance(config.getConnector().getAwsEmrConfig(), udfDAO, taskDAO);
+        this.s3Service = S3Service.getInstance(config.getConnector().getAwsEmrConfig());
+        this.mysqlConnector = new MySQLConnector(config.getConnector().getMysql(), environment, s3Service, config.getConnector().getAwsEmrConfig().getS3PathPrefix());
+        this.adhocExecutorService = Executors.newFixedThreadPool(config.getConcurrencyConfig().getAdHocThreadPoolSize());
+        this.scheduledExecutorService = Executors.newFixedThreadPool(config.getConcurrencyConfig().getScheduledThreadPoolSize());
         this.cancelPlaygroundRequestSet = Collections.synchronizedSet(new HashSet<>());
         this.runningReconciliationSet = Collections.synchronizedSet(new HashSet<>());
         this.reconciliationFutures = Collections.synchronizedMap(new HashMap<>());
         this.reconciliationMappingDAO = new ReconciliationMappingDAOImpl(metaDBConnection);
         this.reconciliationResultsDAO = new ReconciliationResultsDAOImpl(metaDBConnection);
         this.reconciliationManager = new DataPhantomReconciliationManager(taskDAO,
-                new AdaptiveCSVComparator(s3Service, reconciliationMappingDAO, reconciliationResultsDAO, taskDAO));
+                new AdaptiveCSVComparator(s3Service, reconciliationMappingDAO, reconciliationResultsDAO, taskDAO, config.getReconciliationConfig()));
 
         recover();
 
-        startNewScheduler();
+        startNewScheduler(config.getConcurrencyConfig());
     }
 
     private void recover() {
@@ -112,7 +113,7 @@ public class DataPhantomResource {
         }
     }
 
-    private void startNewScheduler() {
+    private void startNewScheduler(ConcurrencyConfig concurrencyConfig) {
 
         if (this.schedulerThread != null && this.schedulerThread.isAlive()) {
             logger.error("Scheduler thread is already running. Not starting a new one.");
@@ -120,6 +121,7 @@ public class DataPhantomResource {
         }
 
         this.schedulerThread = new Thread(new DataPhantomSchedulerAssistant(
+                concurrencyConfig,
                 this.playgroundDAO,
                 this.taskDAO,
                 this.historyDAO,
@@ -471,7 +473,7 @@ public class DataPhantomResource {
     public Response getS3FilePreview(@PathParam("s3Location") String s3) {
 
         try {
-            List<String> previewLines = s3Service.readOutputPreview(s3, 100);
+            List<String> previewLines = s3Service.readOutputPreview(s3);
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -520,7 +522,7 @@ public class DataPhantomResource {
     @Path("/playground/{playgroundId}/run-history")
     public Response getPlaygroundRunHistory(
             @PathParam("playgroundId") String playgroundId,
-            @QueryParam("limit") @DefaultValue("10") int limit) {
+            @QueryParam("limit") int limit) {
         
         try {
             UUID playgroundUuid = UUID.fromString(playgroundId);

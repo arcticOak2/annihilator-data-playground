@@ -18,14 +18,12 @@ public class MySQLDBConnection {
     private final DataSource dataSource;
     
     public MySQLDBConnection(MySQLConnectorConfig config, Environment environment) {
-        // Convert MySQLConnectorConfig to DataSourceFactory
         DataSourceFactory dataSourceFactory = new DataSourceFactory();
         dataSourceFactory.setDriverClass(config.getDriverClass());
         dataSourceFactory.setUrl(config.getUrl());
         dataSourceFactory.setUser(config.getUser());
         dataSourceFactory.setPassword(config.getPassword());
         
-        // Set pool settings
         dataSourceFactory.setMaxSize(config.getMaxSize());
         dataSourceFactory.setMinSize(config.getMinSize());
         dataSourceFactory.setMaxWaitForConnection(Duration.parse(config.getMaxWaitForConnection()));

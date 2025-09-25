@@ -21,6 +21,24 @@ public class AWSEmrConfig {
     @NotNull
     private String clusterLogicalId;
 
+    @NotNull
+    private int maxStepRetries;
+
+    @NotNull
+    private int s3MaxKeysPerRequest;
+
+    @NotNull
+    private int stackUpdateCheckMaxAttempt;
+
+    @NotNull
+    private int s3OutputPreviewLineCount;
+
+    @NotNull
+    private long stackUpdatePollingInterval;
+
+    @NotNull
+    private long stepPollingInterval;
+
     @JsonProperty("region")
     public String getRegion() {
         return region;
@@ -51,9 +69,59 @@ public class AWSEmrConfig {
         return s3PathPrefix;
     }
 
+    @JsonProperty("max_step_retries")
+    public int getMaxStepRetries() {
+        return maxStepRetries;
+    }
+
     @JsonProperty("cluster_logical_id")
     public String getClusterLogicalId() {
         return clusterLogicalId;
+    }
+
+    @JsonProperty("s3_max_keys_per_request")
+    public int getS3MaxKeysPerRequest() {
+        return s3MaxKeysPerRequest;
+    }
+
+    @JsonProperty("stack_update_check_max_attempt")
+    public int getStackUpdateCheckMaxAttempt() {
+        return stackUpdateCheckMaxAttempt;
+    }
+
+    @JsonProperty("s3_output_preview_line_count")
+    public int getS3OutputPreviewLineCount() {
+        return s3OutputPreviewLineCount;
+    }
+
+    @JsonProperty("stack_update_polling_interval")
+    public long getStackUpdatePollingInterval() {
+        return stackUpdatePollingInterval;
+    }
+
+    @JsonProperty("step_polling_interval")
+    public long getStepPollingInterval() {
+        return stepPollingInterval;
+    }
+
+    public void setS3MaxKeysPerRequest(int s3MaxKeysPerRequest) {
+        this.s3MaxKeysPerRequest = s3MaxKeysPerRequest;
+    }
+
+    public void setStackUpdateCheckMaxAttempt(int stackUpdateCheckMaxAttempt) {
+        this.stackUpdateCheckMaxAttempt = stackUpdateCheckMaxAttempt;
+    }
+
+    public void setS3OutputPreviewLineCount(int s3OutputPreviewLineCount) {
+        this.s3OutputPreviewLineCount = s3OutputPreviewLineCount;
+    }
+
+    public void setStepPollingInterval(long stepPollingInterval) {
+        this.stepPollingInterval = stepPollingInterval;
+    }
+
+    public void setStackUpdatePollingInterval(long stackUpdatePollingInterval) {
+        this.stackUpdatePollingInterval = stackUpdatePollingInterval;
     }
 
     public void setClusterLogicalId(String clusterLogicalId) {
@@ -82,5 +150,9 @@ public class AWSEmrConfig {
     
     public void setS3PathPrefix(String s3PathPrefix) {
         this.s3PathPrefix = s3PathPrefix;
+    }
+
+    public void setMaxStepRetries(int maxStepRetries) {
+        this.maxStepRetries = maxStepRetries;
     }
 }

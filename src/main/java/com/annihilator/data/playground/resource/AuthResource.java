@@ -30,7 +30,6 @@ public class AuthResource {
     private final UserDAO userDAO;
     private final JwtService jwtService;
     
-    // In-memory storage for reset tokens (in production, use Redis or database)
     private final Map<String, ResetTokenInfo> resetTokens = new ConcurrentHashMap<>();
 
     public AuthResource(UserDAO userDAO, JwtService jwtService) {
@@ -38,7 +37,6 @@ public class AuthResource {
         this.jwtService = jwtService;
     }
     
-    // Inner class for reset token info
     private static class ResetTokenInfo {
         private final String email;
         private final long expiryTime;

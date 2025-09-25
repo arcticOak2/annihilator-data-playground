@@ -6,20 +6,16 @@ server:
     - type: http
       port: 9093
 
-database:
+meta_store:
   driverClass: org.mariadb.jdbc.Driver
   url: jdbc:mariadb://localhost:3306/data_phantom
   user: root
   password: root
-  
-  # Dropwizard DataSourceFactory Connection Pool Settings
   maxSize: 50
   minSize: 10
   maxWaitForConnection: 30s
   maxConnectionAge: 30m
   minIdleTime: 10m
-  
-  # Connection Validation
   validationQuery: "SELECT 1"
   validationQueryTimeout: 3s
   checkConnectionOnBorrow: true
@@ -28,33 +24,47 @@ jwt:
   secretKey: "your-super-secret-jwt-key-change-this-in-production"
   tokenExpirationMinutes: 60
   refreshTokenExpirationDays: 7
-aws_emr:
-  access_key: ${AWS_ACCESS_KEY_ID:your-access-key}
-  secret_key: ${AWS_SECRET_ACCESS_KEY:your-secret-key}
-  s3_bucket: ${AWS_S3_BUCKET:your-s3-bucket}
-  s3_path_prefix: ${AWS_S3_PATH_PREFIX:data-phantom}
-  region: ${AWS_REGION:us-east-1}
-  stack_name: ${AWS_STACK_NAME:DataPhantomClusterStack}
-  cluster_logical_id: ${AWS_CLUSTER_LOGICAL_ID:DataPhantomCluster}
+
+concurrency_config:
+  adhoc_threadpool_size: 200
+  scheduled_threadpool_size: 200
+  scheduler_sleep_time: 300000
+  playground_execution_grace_period: 300000 # 5 mins
+  playground_max_execution_frequency: 360000 # 6 mins
+
+reconciliation_settings:
+  exact_match_threshold: 1048576 # 1MB
+  false_positive_rate: 0.1
+  estimated_rows: 1000000
+
 connector:
+  aws_emr:
+    access_key: ${AWS_ACCESS_KEY_ID:your-access-key}
+    secret_key: ${AWS_SECRET_ACCESS_KEY:your-secret-key}
+    s3_bucket: ${AWS_S3_BUCKET:your-s3-bucket}
+    s3_path_prefix: ${AWS_S3_PATH_PREFIX:data-phantom}
+    region: ${AWS_REGION:us-east-1}
+    stack_name: ${AWS_STACK_NAME:DataPhantomClusterStack}
+    cluster_logical_id: ${AWS_CLUSTER_LOGICAL_ID:DataPhantomCluster}
+    step_polling_interval: 30000 # 30 secs
+    stack_update_polling_interval: 30000
+    stack_update_check_max_attempt: 60
+    s3_output_preview_line_count: 100
+    s3_max_keys_per_request: 20
+    max_step_retries: 3
+
   mysql:
     driverClass: org.mariadb.jdbc.Driver
     url: ${MYSQL_URL:jdbc:mariadb://localhost:3306/your_database}
     user: ${MYSQL_USER:your_username}
     password: ${MYSQL_PASSWORD:your_password}
-    
-    # Connection Pool Settings
     maxSize: 20
     minSize: 5
     maxWaitForConnection: 30s
     maxConnectionAge: 30m
     minIdleTime: 10m
-    
-    # Connection Validation
     validationQuery: "SELECT 1"
     validationQueryTimeout: 3s
     checkConnectionOnBorrow: true
     checkConnectionOnReturn: true
-    
-    # Output Configuration
     outputDirectory: ${SQL_OUTPUT_DIRECTORY:/tmp/sql-output}

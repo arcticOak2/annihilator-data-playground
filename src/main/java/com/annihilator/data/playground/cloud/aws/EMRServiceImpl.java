@@ -1,5 +1,6 @@
 package com.annihilator.data.playground.cloud.aws;
 
+import com.annihilator.data.playground.config.AWSEmrConfig;
 import com.annihilator.data.playground.model.StepMetadata;
 import com.annihilator.data.playground.model.StepResult;
 import com.annihilator.data.playground.model.TaskType;
@@ -10,7 +11,6 @@ import com.annihilator.data.playground.utility.PrestoScriptGenerator;
 import com.annihilator.data.playground.utility.HiveScriptGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.*;
 import software.amazon.awssdk.services.emr.EmrClient;
@@ -36,90 +36,40 @@ public class EMRServiceImpl implements EMRService {
     private final S3Service s3Service;
     private final UDFDAO udfDAO;
     private final TaskDAO taskDAO;
-    private final String stackName;
-    private final String clusterLogicalId;
-    private final String outputBucket;
-    private final String pathPrefix;
     private final ExecutorService executorService;
     private String currentClusterId;
+
+    private final AWSEmrConfig awsEmrConfig;
     
     private final java.util.concurrent.ConcurrentHashMap<String, StepMetadata> stepMetadata = new java.util.concurrent.ConcurrentHashMap<>();
-    
-    public EMRServiceImpl(String stackName, String clusterLogicalId, Region region, UDFDAO udfDAO, TaskDAO taskDAO) {
-        this(stackName, clusterLogicalId, region, "default-output-bucket", "data-phantom", udfDAO, taskDAO);
-    }
-    
-    public EMRServiceImpl(String stackName, String clusterLogicalId, Region region, String outputBucket, UDFDAO udfDAO, TaskDAO taskDAO) {
-        this(stackName, clusterLogicalId, region, outputBucket, "data-phantom", udfDAO, taskDAO);
-    }
-    
-    public EMRServiceImpl(String stackName, String clusterLogicalId, Region region, String outputBucket, String pathPrefix, UDFDAO udfDAO, TaskDAO taskDAO) {
-        this.stackName = stackName;
-        this.clusterLogicalId = clusterLogicalId;
-        this.outputBucket = outputBucket;
-        this.pathPrefix = pathPrefix != null ? pathPrefix : "data-phantom";
-        this.udfDAO = udfDAO;
-        this.taskDAO = taskDAO;
-        this.cloudFormationClient = CloudFormationClient.builder().region(region).build();
-        this.emrClient = EmrClient.builder().region(region).build();
-        this.s3Service = null;
-        this.executorService = Executors.newCachedThreadPool();
-    }
-    
-    public EMRServiceImpl(String stackName, String clusterLogicalId, 
-                         CloudFormationClient cloudFormationClient, EmrClient emrClient, String outputBucket, UDFDAO udfDAO, TaskDAO taskDAO) {
-        this(stackName, clusterLogicalId, cloudFormationClient, emrClient, outputBucket, "data-phantom", udfDAO, taskDAO);
-    }
-    
-    public EMRServiceImpl(String stackName, String clusterLogicalId, 
-                         CloudFormationClient cloudFormationClient, EmrClient emrClient, String outputBucket, String pathPrefix, UDFDAO udfDAO, TaskDAO taskDAO) {
-        this.stackName = stackName;
-        this.clusterLogicalId = clusterLogicalId;
-        this.outputBucket = outputBucket;
-        this.pathPrefix = pathPrefix != null ? pathPrefix : "data-phantom";
-        this.udfDAO = udfDAO;
-        this.taskDAO = taskDAO;
-        this.cloudFormationClient = cloudFormationClient;
-        this.emrClient = emrClient;
-        this.s3Service = null;
-        this.executorService = Executors.newCachedThreadPool();
-    }
-    
-    public EMRServiceImpl(String stackName, String clusterLogicalId, 
-                         CloudFormationClient cloudFormationClient, EmrClient emrClient, 
-                         S3Service s3Service, String outputBucket, UDFDAO udfDAO, TaskDAO taskDAO) {
-        this(stackName, clusterLogicalId, cloudFormationClient, emrClient, s3Service, outputBucket, "data-phantom", udfDAO, taskDAO);
-    }
-    
-    public EMRServiceImpl(String stackName, String clusterLogicalId, 
-                         CloudFormationClient cloudFormationClient, EmrClient emrClient, 
-                         S3Service s3Service, String outputBucket, String pathPrefix, UDFDAO udfDAO, TaskDAO taskDAO) {
-        this.stackName = stackName;
-        this.clusterLogicalId = clusterLogicalId;
-        this.outputBucket = outputBucket;
-        this.pathPrefix = pathPrefix != null ? pathPrefix : "data-phantom";
+
+    public EMRServiceImpl(AWSEmrConfig awsEmrConfig, CloudFormationClient cloudFormationClient, EmrClient emrClient,
+                          S3Service s3Service, UDFDAO udfDAO, TaskDAO taskDAO) {
+
         this.udfDAO = udfDAO;
         this.taskDAO = taskDAO;
         this.cloudFormationClient = cloudFormationClient;
         this.emrClient = emrClient;
         this.s3Service = s3Service;
         this.executorService = Executors.newCachedThreadPool();
+        this.awsEmrConfig = awsEmrConfig;
+
     }
     
 
     @Override
     public CompletableFuture<StepResult> submitTaskAndWait(String playgroundId, String queryId, String content, String taskType) {
         return CompletableFuture.supplyAsync(() -> {
-            int maxRetries = 3;
+
             String lastStepId = null;
             String lastFailureReason = null;
             StepResult lastResult = null;
             
-            logger.info("Starting task {} with {} retries", queryId, maxRetries);
+            logger.info("Starting task {} with {} retries", queryId, awsEmrConfig.getMaxStepRetries());
             
-            for (int attempt = 0; attempt <= maxRetries; attempt++) {
+            for (int attempt = 0; attempt <= awsEmrConfig.getMaxStepRetries(); attempt++) {
                 try {
-                    logger.info("Attempting task {} (attempt {}/{})", queryId, attempt + 1, maxRetries + 1);
+                    logger.info("Attempting task {} (attempt {}/{})", queryId, attempt + 1, awsEmrConfig.getMaxStepRetries() + 1);
                     
                     Task task = taskDAO.findTaskById(queryId);
                     if (task == null) {
@@ -129,7 +79,7 @@ public class EMRServiceImpl implements EMRService {
                     String stepId = submitTaskWithCustomOutput(task, playgroundId, queryId, taskType);
                     lastStepId = stepId;
                     
-                    StepResult result = waitForStepCompletion(stepId, 30000);
+                    StepResult result = waitForStepCompletion(stepId, awsEmrConfig.getStepPollingInterval());
                     lastResult = result;
                     
                     if (result.isSuccess()) {
@@ -139,8 +89,8 @@ public class EMRServiceImpl implements EMRService {
                         lastFailureReason = result.getMessage();
                         logger.warn("Task {} failed on attempt {}: {}", queryId, attempt + 1, lastFailureReason);
                         
-                        if (attempt < maxRetries) {
-                            logger.info("Retrying task {} (attempt {}/{})", queryId, attempt + 2, maxRetries + 1);
+                        if (attempt < awsEmrConfig.getMaxStepRetries()) {
+                            logger.info("Retrying task {} (attempt {}/{})", queryId, attempt + 2, awsEmrConfig.getMaxStepRetries() + 1);
                         }
                     }
                     
@@ -148,21 +98,21 @@ public class EMRServiceImpl implements EMRService {
                     logger.error("Task {} failed on attempt {} with exception: {}", queryId, attempt + 1, e.getMessage(), e);
                     lastFailureReason = "Exception: " + e.getMessage();
                     
-                    if (attempt < maxRetries) {
-                        logger.info("Retrying task {} after exception (attempt {}/{})", queryId, attempt + 2, maxRetries + 1);
+                    if (attempt < awsEmrConfig.getMaxStepRetries()) {
+                        logger.info("Retrying task {} after exception (attempt {}/{})", queryId, attempt + 2, awsEmrConfig.getMaxStepRetries() + 1);
                     }
                 }
             }
             
-            logger.error("Task {} failed after {} attempts. Last failure: {}", queryId, maxRetries + 1, lastFailureReason);
+            logger.error("Task {} failed after {} attempts. Last failure: {}", queryId, awsEmrConfig.getMaxStepRetries() + 1, lastFailureReason);
             
             if (lastResult != null) {
                 return new StepResult(lastStepId, StepState.FAILED, 
-                    "Failed after " + (maxRetries + 1) + " attempts. Last failure: " + lastFailureReason, 
+                    "Failed after " + (awsEmrConfig.getMaxStepRetries() + 1) + " attempts. Last failure: " + lastFailureReason,
                     null, lastResult.getLogPath(), queryId);
             } else {
                 return new StepResult(lastStepId, StepState.FAILED, 
-                    "Failed after " + (maxRetries + 1) + " attempts. Last failure: " + lastFailureReason, 
+                    "Failed after " + (awsEmrConfig.getMaxStepRetries() + 1) + " attempts. Last failure: " + lastFailureReason,
                     null, null, queryId);
             }
             
@@ -233,6 +183,10 @@ public class EMRServiceImpl implements EMRService {
     }
     
     private String submitTaskWithCustomOutput(Task task, String playgroundId, String queryId, String taskType) {
+
+        String outputBucket = awsEmrConfig.getS3Bucket();
+        String pathPrefix = awsEmrConfig.getS3PathPrefix();
+
         try {
             ensureClusterReady();
 
@@ -289,54 +243,9 @@ public class EMRServiceImpl implements EMRService {
         }
     }
     
-    private String generateScriptFromTemplate(String query, String tempFile, String outputPath, 
-                                            String playgroundId, String queryId, String uniqueId, String currentDate, String taskType) {
-        return generateScriptFromTemplate(query, tempFile, outputPath, playgroundId, queryId, uniqueId, currentDate, taskType, pathPrefix);
-    }
-    
-    private String generateScriptFromTemplate(String query, String tempFile, String outputPath, 
-                                            String playgroundId, String queryId, String uniqueId, String currentDate, String taskType, String pathPrefix) {
-        try {
-            String template = loadTemplate(taskType);
-            
-            String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            
-            String script = template
-                .replace("${timestamp}", timestamp)
-                .replace("${playgroundId}", playgroundId != null ? playgroundId : "unknown")
-                .replace("${queryId}", queryId != null ? queryId : "unknown")
-                .replace("${uniqueId}", uniqueId)
-                .replace("${bucket}", outputBucket)
-                .replace("${date}", currentDate)
-                .replace("${query}", query)
-                .replace("${tempFile}", tempFile)
-                .replace("${outputPath}", outputPath)
-                .replace("${pathPrefix}", pathPrefix);
-            
-            logger.info("Generated script from template for playground: {}, query: {}, uniqueId: {}, taskType: {}", 
-                       playgroundId, queryId, uniqueId, taskType);
-            return script;
-            
-        } catch (Exception e) {
-            logger.error("Failed to generate script from template", e);
-            return String.format("hive -e \"%s\" > %s 2>&1 && aws s3 cp %s %s", query, tempFile, tempFile, outputPath);
-        }
-    }
-    
-    private String loadTemplate(String taskType) throws IOException {
-        String templatePath;
-        switch (taskType) {
-            case "PRESTO":
-                templatePath = "/presto-query-template.sh";
-                break;
-            case "SPARK_SQL":
-                templatePath = "/sparksql-template.py";
-                break;
-            case "HIVE":
-            default:
-                templatePath = "/hive-query-template.sh";
-                break;
-        }
+    private String loadSparkTemplate(String taskType) throws IOException {
+
+        String templatePath = "/sparksql-template.py";
         
         try (InputStream inputStream = EMRServiceImpl.class.getResourceAsStream(templatePath)) {
             if (inputStream == null) {
@@ -347,16 +256,12 @@ public class EMRServiceImpl implements EMRService {
             return new String(bytes, StandardCharsets.UTF_8);
         }
     }
+
     
     private String generateSparkSQLScriptFromTemplate(String query, String playgroundId, String queryId, 
                                                      String uniqueId, String currentDate, String outputBucket) {
-        return generateSparkSQLScriptFromTemplate(query, playgroundId, queryId, uniqueId, currentDate, outputBucket, pathPrefix);
-    }
-    
-    private String generateSparkSQLScriptFromTemplate(String query, String playgroundId, String queryId, 
-                                                     String uniqueId, String currentDate, String outputBucket, String pathPrefix) {
         try {
-            String template = loadTemplate(TaskType.SPARK_SQL.name());
+            String template = loadSparkTemplate(TaskType.SPARK_SQL.name());
             
             String cleanedQuery = query.trim();
             if (cleanedQuery.endsWith(";")) {
@@ -372,7 +277,7 @@ public class EMRServiceImpl implements EMRService {
                 .replace("${query}", cleanedQuery)
                 .replace("${currentDate}", currentDate)
                 .replace("${outputBucket}", outputBucket)
-                .replace("${pathPrefix}", pathPrefix);
+                .replace("${pathPrefix}", awsEmrConfig.getS3PathPrefix());
         } catch (IOException e) {
             logger.error("Error generating SparkSQL script from template", e);
             String cleanedQuery = query.trim();
@@ -391,6 +296,9 @@ public class EMRServiceImpl implements EMRService {
     }
     
     private String getStepOutputPath(String stepId) {
+
+        String outputBucket = awsEmrConfig.getS3Bucket();
+        String pathPrefix = awsEmrConfig.getS3PathPrefix();
         try {
             DescribeStepRequest request = DescribeStepRequest.builder()
                 .clusterId(currentClusterId)
@@ -450,7 +358,7 @@ public class EMRServiceImpl implements EMRService {
     private StepConfig createSparkStepConfig(String query, String folderName, String queryName, String uniqueId, String timestamp) {
         String pythonS3Key = s3Service.writeQueryToS3(query, String.format("spark-script-%s-%s-%s.py", 
                                                                            folderName, queryName, uniqueId));
-        String pythonS3Path = String.format("s3://%s/%s", outputBucket, pythonS3Key);
+        String pythonS3Path = String.format("s3://%s/%s", awsEmrConfig.getS3Bucket(), pythonS3Key);
         
         return StepConfig.builder()
             .name("SparkQuery-" + timestamp + "-" + folderName + "-" + queryName)
@@ -467,10 +375,10 @@ public class EMRServiceImpl implements EMRService {
     }
     
     private StepConfig createSparkSQLStepConfig(String query, String folderName, String queryName, String uniqueId, String timestamp, String currentDate) {
-        String scriptContent = generateSparkSQLScriptFromTemplate(query, folderName, queryName, uniqueId, currentDate, outputBucket);
+        String scriptContent = generateSparkSQLScriptFromTemplate(query, folderName, queryName, uniqueId, currentDate, awsEmrConfig.getS3Bucket());
         String pythonS3Key = s3Service.writeQueryToS3(scriptContent, String.format("sparksql-script-%s-%s-%s.py", 
                                                                                    folderName, queryName, uniqueId));
-        String pythonS3Path = String.format("s3://%s/%s", outputBucket, pythonS3Key);
+        String pythonS3Path = String.format("s3://%s/%s", awsEmrConfig.getS3Bucket(), pythonS3Key);
         
         return StepConfig.builder()
             .name("SparkSQLQuery-" + timestamp + "-" + folderName + "-" + queryName)
@@ -496,9 +404,9 @@ public class EMRServiceImpl implements EMRService {
                 udfDAO, 
                 folderName, 
                 queryName, 
-                uniqueId, 
-                outputBucket, 
-                pathPrefix,
+                uniqueId,
+                awsEmrConfig.getS3Bucket(),
+                awsEmrConfig.getS3PathPrefix(),
                 currentDate, 
                 tempFile, 
                 outputPath
@@ -511,9 +419,9 @@ public class EMRServiceImpl implements EMRService {
                 udfDAO, 
                 folderName, 
                 queryName, 
-                uniqueId, 
-                outputBucket, 
-                pathPrefix,
+                uniqueId,
+                awsEmrConfig.getS3Bucket(),
+                awsEmrConfig.getS3PathPrefix(),
                 currentDate, 
                 tempFile, 
                 outputPath
@@ -526,7 +434,7 @@ public class EMRServiceImpl implements EMRService {
         
         String scriptS3Key = s3Service.writeQueryToS3(scriptContent, String.format("%s-script-%s-%s-%s.sh", 
                                                                                   taskType, folderName, queryName, uniqueId));
-        String scriptS3Path = String.format("s3://%s/%s", outputBucket, scriptS3Key);
+        String scriptS3Path = String.format("s3://%s/%s", awsEmrConfig.getS3Bucket(), scriptS3Key);
         
         String stepName = taskType.equals(TaskType.PRESTO.name()) ? "PrestoQuery" : "HiveQuery";
         return StepConfig.builder()
@@ -667,7 +575,7 @@ public class EMRServiceImpl implements EMRService {
     private String getClusterIdFromStackResources() {
         try {
             ListStackResourcesRequest request = ListStackResourcesRequest.builder()
-                .stackName(stackName)
+                .stackName(awsEmrConfig.getStackName())
                 .build();
             
             ListStackResourcesResponse response = cloudFormationClient.listStackResources(request);
@@ -709,7 +617,7 @@ public class EMRServiceImpl implements EMRService {
             }
             
             for (ClusterSummary cluster : response.clusters()) {
-                if (cluster.name() != null && cluster.name().contains(clusterLogicalId)) {
+                if (cluster.name() != null && cluster.name().contains(awsEmrConfig.getClusterLogicalId())) {
                     logger.info("Found existing cluster with matching name: {} (state: {})", cluster.id(), cluster.status().state());
                     return cluster.id();
                 }
@@ -730,7 +638,7 @@ public class EMRServiceImpl implements EMRService {
             int newRandom = ThreadLocalRandom.current().nextInt(1, Integer.MAX_VALUE);
             
             UpdateStackRequest request = UpdateStackRequest.builder()
-                .stackName(stackName)
+                .stackName(awsEmrConfig.getStackName())
                 .usePreviousTemplate(true)
                 .parameters(
                     Parameter.builder()
@@ -762,13 +670,12 @@ public class EMRServiceImpl implements EMRService {
     
     private void waitForStackUpdateComplete() {
         try {
-            int maxAttempts = 60;
             int attempt = 0;
             
-            while (attempt < maxAttempts) {
+            while (attempt < awsEmrConfig.getStackUpdateCheckMaxAttempt()) {
                 try {
                     DescribeStacksRequest request = DescribeStacksRequest.builder()
-                        .stackName(stackName)
+                        .stackName(awsEmrConfig.getStackName())
                         .build();
                     
                     DescribeStacksResponse response = cloudFormationClient.describeStacks(request);
@@ -782,7 +689,7 @@ public class EMRServiceImpl implements EMRService {
                         }
                     }
                     
-                    Thread.sleep(30000);
+                    Thread.sleep(awsEmrConfig.getStepPollingInterval());
                     attempt++;
                     
                 } catch (InterruptedException e) {
@@ -801,15 +708,14 @@ public class EMRServiceImpl implements EMRService {
     
     private void waitForClusterReady(String clusterId) {
         try {
-            int maxAttempts = 60;
             int attempt = 0;
             
-            while (attempt < maxAttempts) {
+            while (attempt < awsEmrConfig.getStackUpdateCheckMaxAttempt()) {
                 if (isClusterReady(clusterId)) {
                     return;
                 }
                 
-                Thread.sleep(30000); // Wait 30 seconds
+                Thread.sleep(awsEmrConfig.getStackUpdatePollingInterval());
                 attempt++;
             }
             

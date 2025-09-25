@@ -1,14 +1,13 @@
 package com.annihilator.data.playground.cloud.aws;
 
+import com.annihilator.data.playground.config.AWSEmrConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.emr.EmrClient;
-import software.amazon.awssdk.services.emr.model.*;
 
 import java.lang.reflect.Method;
 
@@ -28,18 +27,28 @@ class EMRServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        emrService = new EMRServiceImpl("test-stack", "test-cluster", cloudFormationClient, emrClient, "test-bucket", "test-prefix", null, null);
+        AWSEmrConfig awsEmrConfig = new AWSEmrConfig();
+        awsEmrConfig.setStackName("test-stack");
+        awsEmrConfig.setClusterLogicalId("test-cluster");
+        awsEmrConfig.setS3PathPrefix("test-prefix");
+        awsEmrConfig.setMaxStepRetries(3);
+
+        emrService = new EMRServiceImpl(awsEmrConfig, cloudFormationClient, emrClient, null , null, null);
     }
 
     @Test
     void testConstructor_WithValidParameters_ShouldCreateInstance() {
         // Given
-        String stackName = "test-stack";
-        String clusterName = "test-cluster";
-        String bucketName = "test-bucket";
+
+        AWSEmrConfig awsEmrConfig = new AWSEmrConfig();
+        awsEmrConfig.setStackName("test-stack");
+        awsEmrConfig.setClusterLogicalId("test-cluster");
+        awsEmrConfig.setS3PathPrefix("test-prefix");
+        awsEmrConfig.setS3Bucket("test-bucket");
+        awsEmrConfig.setMaxStepRetries(3);
 
         // When
-        EMRServiceImpl service = new EMRServiceImpl(stackName, clusterName, cloudFormationClient, emrClient, bucketName, "test-prefix", null, null);
+        EMRServiceImpl service = new EMRServiceImpl(awsEmrConfig, cloudFormationClient, emrClient, null, null, null);
 
         // Then
         assertNotNull(service);

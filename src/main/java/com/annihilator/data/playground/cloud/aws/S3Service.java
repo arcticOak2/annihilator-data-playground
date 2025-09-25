@@ -22,7 +22,7 @@ public interface S3Service {
             .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
             .build();
         
-        return new S3ServiceImpl(s3Client, awsConfig.getS3Bucket(), awsConfig.getS3PathPrefix());
+        return new S3ServiceImpl(s3Client, awsConfig);
     }
     
     /**
@@ -49,16 +49,13 @@ public interface S3Service {
      * @param maxLines Maximum number of lines to read for preview (default: 100)
      * @return List of file lines as strings
      */
-    List<String> readOutputPreview(String s3Path, int maxLines);
+    List<String> readOutputPreview(String s3Path);
     
     /**
      * Reads a preview of a file from S3 with default line limit
      * @param s3Path The full S3 path (e.g., s3://bucket-name/path/to/file.txt) or S3 object key
      * @return List of file lines as strings (first 100 lines)
      */
-    default List<String> readOutputPreview(String s3Path) {
-        return readOutputPreview(s3Path, 100);
-    }
     
     /**
      * Lists files in an S3 directory and returns the first data file found (ignores Spark metadata files)

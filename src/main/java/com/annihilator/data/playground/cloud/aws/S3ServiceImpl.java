@@ -1,5 +1,6 @@
 package com.annihilator.data.playground.cloud.aws;
 
+import com.annihilator.data.playground.config.AWSEmrConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -17,7 +18,9 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -26,13 +29,11 @@ public class S3ServiceImpl implements S3Service {
     private static final Logger logger = LoggerFactory.getLogger(S3ServiceImpl.class);
     
     private final S3Client s3Client;
-    private final String bucketName;
-    private final String pathPrefix;
+    private final AWSEmrConfig awsEmrConfig;
     
-    public S3ServiceImpl(S3Client s3Client, String bucketName, String pathPrefix) {
+    public S3ServiceImpl(S3Client s3Client, AWSEmrConfig awsEmrConfig) {
         this.s3Client = s3Client;
-        this.bucketName = bucketName;
-        this.pathPrefix = pathPrefix != null ? pathPrefix : "data-phantom";
+        this.awsEmrConfig = awsEmrConfig;
     }
     
     @Override
@@ -40,15 +41,15 @@ public class S3ServiceImpl implements S3Service {
         try {
             String currentDate = java.time.LocalDate.now().toString();
             
-            String s3ObjectKey = String.format("%s/query/%s/%s", pathPrefix, currentDate, fileName);
+            String s3ObjectKey = String.format("%s/query/%s/%s", awsEmrConfig.getS3PathPrefix(), currentDate, fileName);
             
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucketName)
+                .bucket(awsEmrConfig.getS3Bucket())
                 .key(s3ObjectKey)
                 .contentType("text/plain")
                 .build();
             
-            byte[] contentBytes = queryText.getBytes("UTF-8");
+            byte[] contentBytes = queryText.getBytes(StandardCharsets.UTF_8);
             s3Client.putObject(putObjectRequest, 
                 RequestBody.fromInputStream(
                     new ByteArrayInputStream(contentBytes),
@@ -56,7 +57,7 @@ public class S3ServiceImpl implements S3Service {
                 )
             );
             
-            logger.info("Successfully uploaded query script to S3: s3://{}/{}", bucketName, s3ObjectKey);
+            logger.info("Successfully uploaded query script to S3: s3://{}/{}", awsEmrConfig.getS3Bucket(), s3ObjectKey);
             return s3ObjectKey;
             
         } catch (S3Exception e) {
@@ -69,7 +70,7 @@ public class S3ServiceImpl implements S3Service {
     }
     
     @Override
-    public List<String> readOutputPreview(String s3Path, int maxLines) {
+    public List<String> readOutputPreview(String s3Path) {
         try {
             String actualFilePath = determineActualFilePath(s3Path);
             
@@ -83,11 +84,11 @@ public class S3ServiceImpl implements S3Service {
             List<String> previewLines = new ArrayList<>();
             
             try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(s3Client.getObject(getObjectRequest), "UTF-8"))) {
+                new InputStreamReader(s3Client.getObject(getObjectRequest), StandardCharsets.UTF_8))) {
                 
                 String line;
                 int lineCount = 0;
-                while ((line = reader.readLine()) != null && lineCount < maxLines) {
+                while ((line = reader.readLine()) != null && lineCount < awsEmrConfig.getS3OutputPreviewLineCount()) {
                     previewLines.add(line);
                     lineCount++;
                 }
@@ -99,15 +100,14 @@ public class S3ServiceImpl implements S3Service {
             return previewLines;
             
         } catch (S3Exception e) {
-            logger.error("Failed to read from S3: {}", e.getMessage(), e);
-            throw new RuntimeException("Failed to read from S3", e);
+            logger.error("Failed to read from S3: {}", e.getMessage());
         } catch (IOException e) {
-            logger.error("IO error while reading from S3: {}", e.getMessage(), e);
-            throw new RuntimeException("IO error while reading from S3", e);
+            logger.error("IO error while reading from S3: {}", e.getMessage());
         } catch (Exception e) {
-            logger.error("Unexpected error while reading from S3: {}", e.getMessage(), e);
-            throw new RuntimeException("Unexpected error while reading from S3", e);
+            logger.error("Unexpected error while reading from S3: {}", e.getMessage());
         }
+
+        return Collections.emptyList();
     }
     
     @Override
@@ -115,15 +115,15 @@ public class S3ServiceImpl implements S3Service {
         try {
             String currentDate = java.time.LocalDate.now().toString();
             
-            String s3ObjectKey = String.format("%s/reconciliation/%s/%s", pathPrefix, currentDate, fileName);
+            String s3ObjectKey = String.format("%s/reconciliation/%s/%s", awsEmrConfig.getS3PathPrefix(), currentDate, fileName);
             
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucketName)
+                .bucket(awsEmrConfig.getS3Bucket())
                 .key(s3ObjectKey)
                 .contentType("text/plain")
                 .build();
             
-            byte[] contentBytes = data.getBytes("UTF-8");
+            byte[] contentBytes = data.getBytes(StandardCharsets.UTF_8);
             s3Client.putObject(putObjectRequest, 
                 RequestBody.fromInputStream(
                     new ByteArrayInputStream(contentBytes),
@@ -131,7 +131,7 @@ public class S3ServiceImpl implements S3Service {
                 )
             );
             
-            String fullS3Path = String.format("s3://%s/%s", bucketName, s3ObjectKey);
+            String fullS3Path = String.format("s3://%s/%s", awsEmrConfig.getS3Bucket(), s3ObjectKey);
             logger.info("Successfully uploaded reconciliation output to S3: {}", fullS3Path);
             return s3ObjectKey;
             
@@ -162,7 +162,7 @@ public class S3ServiceImpl implements S3Service {
             
             long lineCount = 0;
             try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(s3Client.getObject(getObjectRequest), "UTF-8"))) {
+                new InputStreamReader(s3Client.getObject(getObjectRequest), StandardCharsets.UTF_8))) {
                 
                 String line;
                 while ((line = reader.readLine()) != null) {
@@ -228,7 +228,7 @@ public class S3ServiceImpl implements S3Service {
             ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
                 .bucket(pathInfo.bucketName)
                 .prefix(directoryKey)
-                .maxKeys(20) // Increased limit to handle more files
+                .maxKeys(awsEmrConfig.getS3MaxKeysPerRequest())
                 .build();
             
             ListObjectsV2Response listResponse = s3Client.listObjectsV2(listRequest);
@@ -241,7 +241,6 @@ public class S3ServiceImpl implements S3Service {
                     continue;
                 }
                 
-                // Skip Spark success files and other metadata files
                 if (isSparkMetadataFile(fileName)) {
                     logger.debug("Skipping Spark metadata file: {}", fileName);
                     continue;
@@ -263,10 +262,7 @@ public class S3ServiceImpl implements S3Service {
             return null;
         }
     }
-    
-    /**
-     * Checks if a file is a Spark metadata file that should be ignored
-     */
+
     private boolean isSparkMetadataFile(String fileName) {
         if (fileName == null || fileName.isEmpty()) {
             return true;
@@ -312,7 +308,7 @@ public class S3ServiceImpl implements S3Service {
             return new S3PathInfo(bucketName, objectKey);
         } else {
             // Treat as object key and use configured bucket
-            return new S3PathInfo(this.bucketName, trimmedPath);
+            return new S3PathInfo(awsEmrConfig.getS3Bucket(), trimmedPath);
         }
     }
     
@@ -332,7 +328,7 @@ public class S3ServiceImpl implements S3Service {
     
     @Override
     public String getBucketName() {
-        return bucketName;
+        return awsEmrConfig.getS3Bucket();
     }
     
     @Override
@@ -374,14 +370,14 @@ public class S3ServiceImpl implements S3Service {
             }
             
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucketName)
+                .bucket(awsEmrConfig.getS3Bucket())
                 .key(s3ObjectKey)
                 .contentType("text/csv")
                 .build();
             
             s3Client.putObject(putObjectRequest, RequestBody.fromFile(localFile));
             
-            String fullS3Path = String.format("s3://%s/%s", bucketName, s3ObjectKey);
+            String fullS3Path = String.format("s3://%s/%s", awsEmrConfig.getS3Bucket(), s3ObjectKey);
             logger.info("Successfully uploaded local file {} to S3: {}", localFilePath, fullS3Path);
             return s3ObjectKey;
             

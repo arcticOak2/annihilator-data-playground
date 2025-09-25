@@ -53,13 +53,11 @@ public class MySQLConnector {
             String currentDate = LocalDate.now().toString();
             
             try {
-                // Ensure output directory exists
                 java.io.File outputDir = new java.io.File(config.getOutputDirectory());
                 if (!outputDir.exists()) {
                     outputDir.mkdirs();
                 }
                 
-                // Generate local file path - following EMR temp file pattern
                 String fileName = String.format("sql-output-%s-%s-%s.csv", playgroundId, taskId, stepId);
                 String localFilePath = new java.io.File(outputDir, fileName).getAbsolutePath();
                 
@@ -132,33 +130,26 @@ public class MySQLConnector {
         });
     }
 
-    /**
-     * Formats database values intelligently, removing trailing zeros from floats
-     */
     public String formatValue(ResultSet rs, int columnIndex) throws SQLException {
         ResultSetMetaData meta = rs.getMetaData();
         int columnType = meta.getColumnType(columnIndex);
         
-        // Handle numeric types that might have trailing zeros
         switch (columnType) {
             case java.sql.Types.DECIMAL:
             case java.sql.Types.NUMERIC:
             case java.sql.Types.FLOAT:
             case java.sql.Types.DOUBLE:
             case java.sql.Types.REAL:
-                // Get the numeric value and format it to remove trailing zeros
                 try {
                     BigDecimal decimal = rs.getBigDecimal(columnIndex);
                     if (decimal != null) {
                         return decimal.stripTrailingZeros().toPlainString();
                     }
                 } catch (SQLException e) {
-                    // Fall back to string if BigDecimal fails
                 }
                 break;
         }
         
-        // For all other types, use the original string conversion
         return rs.getString(columnIndex);
     }
 }

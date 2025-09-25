@@ -1,6 +1,7 @@
 package com.annihilator.data.playground.core;
 
 import com.annihilator.data.playground.cloud.aws.EMRService;
+import com.annihilator.data.playground.config.ConcurrencyConfig;
 import com.annihilator.data.playground.connector.MySQLConnector;
 import com.annihilator.data.playground.db.AdhocLimitedInputDAO;
 import com.annihilator.data.playground.db.PlaygroundDAO;
@@ -34,8 +35,10 @@ public class DataPhantomSchedulerAssistant implements Runnable {
     private Set<String> cancelPlaygroundRequestSet;
     private DataPhantomReconciliationManager reconciliationManager;
     private MySQLConnector mySQLConnector;
+    private ConcurrencyConfig concurrencyConfig;
 
-    public DataPhantomSchedulerAssistant(PlaygroundDAO playgroundDAO,
+    public DataPhantomSchedulerAssistant(ConcurrencyConfig concurrencyConfig,
+                                         PlaygroundDAO playgroundDAO,
                                          TaskDAO taskDAO,
                                          PlaygroundRunHistoryDAO historyDAO,
                                          AdhocLimitedInputDAO adhocLimitedInputDAO,
@@ -56,6 +59,7 @@ public class DataPhantomSchedulerAssistant implements Runnable {
         this.cancelPlaygroundRequestSet = cancelPlaygroundRequestSet;
         this.reconciliationManager = reconciliationManager;
         this.mySQLConnector = mySQLConnector;
+        this.concurrencyConfig = concurrencyConfig;
     }
 
     private void loadQueue() {
@@ -101,9 +105,9 @@ public class DataPhantomSchedulerAssistant implements Runnable {
         long executionTime = getNextExecutionTimeInMillis(playground.getCronExpression());
         long currentTime = getCurrentTimeInMillis();
 
-        return currentTime - executionTime > 5 * 60 * 1000 ||
+        return currentTime - executionTime > concurrencyConfig.getPlaygroundExecutionGracePeriod() ||
                 (playground.getLastExecutedAt() > 0 &&
-                        System.currentTimeMillis() - playground.getLastExecutedAt() < 6 * 60 * 1000L);
+                        System.currentTimeMillis() - playground.getLastExecutedAt() < concurrencyConfig.getPlaygroundMaxExecutionFrequency());
     }
 
 
@@ -130,9 +134,7 @@ public class DataPhantomSchedulerAssistant implements Runnable {
 
                 long waitTime = executionTime - currentTime;
                 
-                long wakeUpTime = 5 * 60 * 1000L;
-                
-                long sleepTime = Math.min(waitTime, wakeUpTime);
+                long sleepTime = Math.min(waitTime, concurrencyConfig.getSchedulerSleepTime());
 
                 if (sleepTime < 0) {
                     sleepTime = 0;
@@ -173,7 +175,7 @@ public class DataPhantomSchedulerAssistant implements Runnable {
                 }
             }
 
-            sleep(5 * 60 * 1000L);
+            sleep(concurrencyConfig.getSchedulerSleepTime());
         }
     }
 

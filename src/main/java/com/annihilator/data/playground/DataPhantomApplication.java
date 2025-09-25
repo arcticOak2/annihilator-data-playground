@@ -36,7 +36,7 @@ public class DataPhantomApplication extends Application<DataPhantomConfig> {
     @Override
     public void run(DataPhantomConfig config, Environment environment) throws SQLException {
 
-        DataSourceFactory dataSourceFactory = config.getDatabase();
+        DataSourceFactory dataSourceFactory = config.getMetaStore();
         dataSourceFactory.build(environment.metrics(), "database");
 
         final DataPhantomApplicationHealthCheck healthCheck = new DataPhantomApplicationHealthCheck();
@@ -51,7 +51,7 @@ public class DataPhantomApplication extends Application<DataPhantomConfig> {
         ));
 
         // Create database connection and DAOs
-        MetaDBConnection metaDBConnection = new MetaDBConnection(config.getDatabase(), environment);
+        MetaDBConnection metaDBConnection = new MetaDBConnection(config.getMetaStore(), environment);
         UserDAOImpl userDAO = new UserDAOImpl(metaDBConnection);
 
         // Register resources

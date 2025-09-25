@@ -43,7 +43,7 @@ class DataPhantomSchedulerAssistantTest {
     @BeforeEach
     void setUp() {
         cancelPlaygroundRequestSet = Collections.synchronizedSet(new HashSet<>());
-        scheduler = new DataPhantomSchedulerAssistant(
+        scheduler = new DataPhantomSchedulerAssistant( null,
             playgroundDAO, taskDAO, null, null, emrService,
             executorService, null, cancelPlaygroundRequestSet, null
         );

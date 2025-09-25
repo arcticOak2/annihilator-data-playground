@@ -1,5 +1,7 @@
 package com.annihilator.data.playground.cloud.aws;
 
+import com.annihilator.data.playground.config.AWSEmrConfig;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,7 +31,10 @@ class S3ServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        s3Service = new S3ServiceImpl(s3Client, "test-bucket", "test-prefix");
+        AWSEmrConfig awsEmrConfig = new AWSEmrConfig();
+        awsEmrConfig.setS3Bucket("test-bucket");
+        awsEmrConfig.setS3PathPrefix("test-prefix");
+        s3Service = new S3ServiceImpl(s3Client, awsEmrConfig);
     }
 
     @Test
@@ -77,7 +82,7 @@ class S3ServiceImplTest {
             .thenReturn(responseInputStream);
 
         // When
-        List<String> result = s3Service.readOutputPreview(s3Path, maxLines);
+        List<String> result = s3Service.readOutputPreview(s3Path);
 
         // Then
         assertNotNull(result);
@@ -175,7 +180,7 @@ class S3ServiceImplTest {
         S3Client client = mock(S3Client.class);
 
         // When
-        S3ServiceImpl service = new S3ServiceImpl(client, bucketName, "test-prefix");
+        S3ServiceImpl service = new S3ServiceImpl(client, null);
 
         // Then
         assertNotNull(service);
@@ -188,7 +193,7 @@ class S3ServiceImplTest {
         S3Client client = null;
 
         // When
-        S3ServiceImpl service = new S3ServiceImpl(client, bucketName, "test-prefix");
+        S3ServiceImpl service = new S3ServiceImpl(client, null);
 
         // Then
         assertNotNull(service);
@@ -354,7 +359,7 @@ class S3ServiceImplTest {
             .thenReturn(responseInputStream);
 
         // When
-        List<String> result = s3Service.readOutputPreview(s3DirectoryPath, maxLines);
+        List<String> result = s3Service.readOutputPreview(s3DirectoryPath);
 
         // Then
         assertNotNull(result);
@@ -377,7 +382,7 @@ class S3ServiceImplTest {
             .thenReturn(responseInputStream);
 
         // When
-        List<String> result = s3Service.readOutputPreview(s3FilePath, maxLines);
+        List<String> result = s3Service.readOutputPreview(s3FilePath);
 
         // Then
         assertNotNull(result);
@@ -408,7 +413,7 @@ class S3ServiceImplTest {
             .thenReturn(responseInputStream);
 
         // When
-        List<String> result = s3Service.readOutputPreview(s3DirectoryPath, maxLines);
+        List<String> result = s3Service.readOutputPreview(s3DirectoryPath);
 
         // Then
         assertNotNull(result);

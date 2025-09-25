@@ -1,5 +1,6 @@
 package com.annihilator.data.playground.cloud.aws;
 
+import com.annihilator.data.playground.config.AWSEmrConfig;
 import com.annihilator.data.playground.config.RetryConfig;
 import com.annihilator.data.playground.model.StepResult;
 import org.junit.jupiter.api.Test;
@@ -34,15 +35,19 @@ public class EMRServiceImplRetryTest {
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
+
+        AWSEmrConfig awsEmrConfig = new AWSEmrConfig();
+        awsEmrConfig.setStackName("test-stack");
+        awsEmrConfig.setClusterLogicalId("test-cluster");
+        awsEmrConfig.setS3PathPrefix("test-prefix");
+        awsEmrConfig.setS3Bucket("test-bucket");
+        awsEmrConfig.setMaxStepRetries(3);
         
-        // Create EMR service with mocked dependencies
         emrService = new EMRServiceImpl(
-            "test-stack",
-            "test-cluster",
+            awsEmrConfig,
             cloudFormationClient,
             emrClient,
-            s3Service,
-            "test-bucket", "test-prefix", null, null
+            s3Service, null, null
         );
         
     }

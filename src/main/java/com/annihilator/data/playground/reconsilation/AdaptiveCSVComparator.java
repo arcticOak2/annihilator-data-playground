@@ -1,12 +1,12 @@
 package com.annihilator.data.playground.reconsilation;
 
 import com.annihilator.data.playground.cloud.aws.S3Service;
+import com.annihilator.data.playground.config.ReconciliationConfig;
 import com.annihilator.data.playground.db.ReconciliationMappingDAO;
 import com.annihilator.data.playground.db.ReconciliationResultsDAO;
 import com.annihilator.data.playground.db.TaskDAO;
 import com.annihilator.data.playground.model.CSVComparisonResult;
 import com.annihilator.data.playground.model.Reconciliation;
-import com.annihilator.data.playground.model.Status;
 import com.annihilator.data.playground.model.Task;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -24,22 +24,19 @@ public class AdaptiveCSVComparator implements CSVComparator {
 
     private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(AdaptiveCSVComparator.class);
     private static final Gson GSON = new Gson();
-    
-    // Configuration constants
-    private static final long SIZE_THRESHOLD = 1 * 1024 * 1024; // 1MB
-    private static final double FALSE_POSITIVE_RATE = 0.01; // 1% (99% accurate)
-    private static final int ESTIMATED_ROWS = 1000000; // Estimated rows for Bloom filter sizing (1M)
 
     private S3Service s3Service;
     private ReconciliationMappingDAO reconciliationMappingDAO;
     private ReconciliationResultsDAO reconciliationResultsDAO;
+    private ReconciliationConfig reconciliationConfig;
     private TaskDAO taskDAO;
 
-    public AdaptiveCSVComparator(S3Service s3Service, ReconciliationMappingDAO reconciliationMappingDAO, 
-                              ReconciliationResultsDAO reconciliationResultsDAO, TaskDAO taskDAO) {
+    public AdaptiveCSVComparator(S3Service s3Service, ReconciliationMappingDAO reconciliationMappingDAO,
+                                 ReconciliationResultsDAO reconciliationResultsDAO, TaskDAO taskDAO, ReconciliationConfig reconciliationConfig) {
         this.s3Service = s3Service;
         this.reconciliationMappingDAO = reconciliationMappingDAO;
         this.reconciliationResultsDAO = reconciliationResultsDAO;
+        this.reconciliationConfig = reconciliationConfig;
         this.taskDAO = taskDAO;
     }
 
@@ -101,7 +98,7 @@ public class AdaptiveCSVComparator implements CSVComparator {
         }
 
         long totalFileSize = leftFileSize + rightFileSize;
-        boolean useBloomFilter = totalFileSize > SIZE_THRESHOLD;
+        boolean useBloomFilter = totalFileSize > reconciliationConfig.getExactMatchThreshold();
 
         LOGGER.info("Reconciliation {} - Total file size: {} bytes, Using Bloom filter: {}", 
                 reconciliationId, totalFileSize, useBloomFilter);
@@ -279,8 +276,8 @@ public class AdaptiveCSVComparator implements CSVComparator {
         }
 
         // Create Bloom filters
-        InMemoryBloomFilter<String> leftRowFilter = new InMemoryBloomFilter<>(ESTIMATED_ROWS, FALSE_POSITIVE_RATE);
-        InMemoryBloomFilter<String> rightRowFilter = new InMemoryBloomFilter<>(ESTIMATED_ROWS, FALSE_POSITIVE_RATE);
+        InMemoryBloomFilter<String> leftRowFilter = new InMemoryBloomFilter<>(reconciliationConfig.getEstimatedRows(), reconciliationConfig.getFalsePositiveRate());
+        InMemoryBloomFilter<String> rightRowFilter = new InMemoryBloomFilter<>(reconciliationConfig.getEstimatedRows(), reconciliationConfig.getFalsePositiveRate());
 
         // First pass: Build Bloom filters
         buildBloomFilter(leftTask.getOutputLocation(), leftColumns, leftRowFilter, "left");

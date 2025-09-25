@@ -8,30 +8,33 @@ public class DataPhantomConfig extends Configuration {
 
     private DataSourceFactory database;
     private DataPhantomJwtConfig jwt;
-    private AWSEmrConfig awsEmr;
     private ConnectorConfig connector;
+    private ConcurrencyConfig concurrencyConfig;
 
-    @JsonProperty("database")
-    public DataSourceFactory getDatabase() { return database; }
+    private ReconciliationConfig reconciliationConfig;
 
-    @JsonProperty("database")
-    public void setDatabase(DataSourceFactory database) { this.database = database; }
+    @JsonProperty("meta_store")
+    public DataSourceFactory getMetaStore() { return database; }
 
     @JsonProperty("jwt")
     public DataPhantomJwtConfig getJwt() { return jwt; }
 
-    @JsonProperty("jwt")
-    public void setJwt(DataPhantomJwtConfig jwt) { this.jwt = jwt; }
-
-    @JsonProperty("aws_emr")
-    public AWSEmrConfig getAwsEmr() { return awsEmr; }
-
-    @JsonProperty("aws_emr")
-    public void setAwsEmr(AWSEmrConfig awsEmr) { this.awsEmr = awsEmr; }
-
     @JsonProperty("connector")
     public ConnectorConfig getConnector() { return connector; }
 
-    @JsonProperty("connector")
+    @JsonProperty("concurrency_config")
+    public ConcurrencyConfig getConcurrencyConfig() { return concurrencyConfig; }
+
+    @JsonProperty("reconciliation_settings")
+    public ReconciliationConfig getReconciliationConfig() { return reconciliationConfig; }
+
+    public void setMetaStore(DataSourceFactory database) { this.database = database; }
+
+    public void setJwt(DataPhantomJwtConfig jwt) { this.jwt = jwt; }
+
     public void setConnector(ConnectorConfig connector) { this.connector = connector; }
+
+    public void setConcurrencyConfig(ConcurrencyConfig concurrencyConfig) { this.concurrencyConfig = concurrencyConfig; }
+
+    public void setReconciliationConfig(ReconciliationConfig reconciliationConfig) { this.reconciliationConfig = reconciliationConfig; }
 }
