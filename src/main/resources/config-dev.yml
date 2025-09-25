@@ -1,0 +1,60 @@
+server:
+  applicationConnectors:
+    - type: http
+      port: 9092
+  adminConnectors:
+    - type: http
+      port: 9093
+
+database:
+  driverClass: org.mariadb.jdbc.Driver
+  url: jdbc:mariadb://localhost:3306/data_phantom
+  user: root
+  password: root
+  
+  # Dropwizard DataSourceFactory Connection Pool Settings
+  maxSize: 50
+  minSize: 10
+  maxWaitForConnection: 30s
+  maxConnectionAge: 30m
+  minIdleTime: 10m
+  
+  # Connection Validation
+  validationQuery: "SELECT 1"
+  validationQueryTimeout: 3s
+  checkConnectionOnBorrow: true
+  checkConnectionOnReturn: true
+jwt:
+  secretKey: "your-super-secret-jwt-key-change-this-in-production"
+  tokenExpirationMinutes: 60
+  refreshTokenExpirationDays: 7
+aws_emr:
+  access_key: ${AWS_ACCESS_KEY_ID:your-access-key}
+  secret_key: ${AWS_SECRET_ACCESS_KEY:your-secret-key}
+  s3_bucket: ${AWS_S3_BUCKET:your-s3-bucket}
+  s3_path_prefix: ${AWS_S3_PATH_PREFIX:data-phantom}
+  region: ${AWS_REGION:us-east-1}
+  stack_name: ${AWS_STACK_NAME:DataPhantomClusterStack}
+  cluster_logical_id: ${AWS_CLUSTER_LOGICAL_ID:DataPhantomCluster}
+connector:
+  mysql:
+    driverClass: org.mariadb.jdbc.Driver
+    url: ${MYSQL_URL:jdbc:mariadb://localhost:3306/your_database}
+    user: ${MYSQL_USER:your_username}
+    password: ${MYSQL_PASSWORD:your_password}
+    
+    # Connection Pool Settings
+    maxSize: 20
+    minSize: 5
+    maxWaitForConnection: 30s
+    maxConnectionAge: 30m
+    minIdleTime: 10m
+    
+    # Connection Validation
+    validationQuery: "SELECT 1"
+    validationQueryTimeout: 3s
+    checkConnectionOnBorrow: true
+    checkConnectionOnReturn: true
+    
+    # Output Configuration
+    outputDirectory: ${SQL_OUTPUT_DIRECTORY:/tmp/sql-output}
