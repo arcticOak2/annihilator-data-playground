@@ -20,10 +20,59 @@ A data processing and analytics platform for managing SQL workflows across multi
 - **Cloud**: AWS EMR, S3
 - **Build**: Maven
 
+## How It Works
+
+### 1. Create Playground
+A playground is a container for your data processing workflows. It defines the environment and settings for your tasks.
+
+### 2. Create Tasks
+Tasks are individual data processing units within a playground. Each task supports different types:
+
+- **Hive**: Apache Hive queries for data warehousing
+- **Presto**: Distributed SQL queries across multiple data sources
+- **Spark SQL**: Apache Spark SQL for big data processing
+- **PySpark**: Python scripts for Spark processing
+- **MySQL**: Direct MySQL database connections
+
+### 3. Task Dependencies (DAG)
+Tasks can have parent-child relationships to create a Directed Acyclic Graph (DAG):
+
+- **Parent Tasks**: Must complete successfully before child tasks can run
+- **Dependency Chain**: Tasks execute in the correct order based on dependencies
+- **Visual DAG**: View task relationships in the React dashboard
+- **Parallel Execution**: Independent tasks can run simultaneously
+
+### 4. Data Reconciliation
+Compare and validate data between different tasks or sources:
+
+- **Reconciliation Mapping**: Define which tasks to compare
+- **Adaptive Comparison Algorithm**: 
+  - **Small files**: Exact matching for precise results
+  - **Large files**: Bloom filter with 1% error rate for up to 1 million records
+- **CSV Comparison**: Intelligent data comparison with adaptive algorithms
+- **Data Validation**: Built-in data quality checks
+- **Reconciliation Results**: View comparison results and differences
+
+### 5. Execution & History
+Run your workflows and track execution history:
+
+- **Scheduled Runs**: Use cron expressions for automated execution
+- **Ad-hoc Runs**: Manual execution on demand
+- **Limited Runs**: Execute only selected tasks
+- **Run History**: Track all execution attempts, status, and results
+- **Status Tracking**: Monitor task status (PENDING, RUNNING, SUCCESS, FAILED, etc.)
+
+### 6. UDF Support
+Upload and use custom User-Defined Functions:
+
+- **JAR Upload**: Upload custom Java JARs containing UDFs
+- **Task-specific UDFs**: Select which UDFs to use for each task
+- **Runtime Registration**: Automatic UDF registration during execution
+
 ## Quick Start
 
 1. **Install MariaDB:**
-```bash
+   ```bash
 # macOS
 brew install mariadb
 brew services start mariadb
