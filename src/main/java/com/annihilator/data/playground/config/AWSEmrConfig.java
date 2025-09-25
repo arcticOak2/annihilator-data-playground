@@ -2,6 +2,8 @@ package com.annihilator.data.playground.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 
 public class AWSEmrConfig {
 
@@ -22,21 +24,33 @@ public class AWSEmrConfig {
     private String clusterLogicalId;
 
     @NotNull
+    @Min(value = 1, message = "Max step retries must be at least 1")
+    @Max(value = 10, message = "Max step retries cannot exceed 10")
     private int maxStepRetries;
 
     @NotNull
+    @Min(value = 1, message = "S3 max keys per request must be at least 1")
+    @Max(value = 1000, message = "S3 max keys per request cannot exceed 1000")
     private int s3MaxKeysPerRequest;
 
     @NotNull
+    @Min(value = 1, message = "Stack update check max attempt must be at least 1")
+    @Max(value = 300, message = "Stack update check max attempt cannot exceed 300")
     private int stackUpdateCheckMaxAttempt;
 
     @NotNull
+    @Min(value = 1, message = "S3 output preview line count must be at least 1")
+    @Max(value = 10000, message = "S3 output preview line count cannot exceed 10000")
     private int s3OutputPreviewLineCount;
 
     @NotNull
+    @Min(value = 1000, message = "Stack update polling interval must be at least 1000ms (1 second)")
+    @Max(value = 300000, message = "Stack update polling interval cannot exceed 300000ms (5 minutes)")
     private long stackUpdatePollingInterval;
 
     @NotNull
+    @Min(value = 1000, message = "Step polling interval must be at least 1000ms (1 second)")
+    @Max(value = 300000, message = "Step polling interval cannot exceed 300000ms (5 minutes)")
     private long stepPollingInterval;
 
     @JsonProperty("region")

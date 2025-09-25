@@ -1,17 +1,29 @@
 package com.annihilator.data.playground.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.Max;
 
 public class ConcurrencyConfig {
 
+    @Min(value = 1, message = "Adhoc thread pool size must be at least 1")
+    @Max(value = 1000, message = "Adhoc thread pool size cannot exceed 1000")
     private int adHocThreadPoolSize;
 
+    @Min(value = 1, message = "Scheduled thread pool size must be at least 1")
+    @Max(value = 1000, message = "Scheduled thread pool size cannot exceed 1000")
     private int scheduledThreadPoolSize;
 
+    @Min(value = 1000, message = "Scheduler sleep time must be at least 1000ms (1 second)")
+    @Max(value = 3600000, message = "Scheduler sleep time cannot exceed 3600000ms (1 hour)")
     private long schedulerSleepTime;
 
+    @Min(value = 60000, message = "Playground execution grace period must be at least 60000ms (1 minute)")
+    @Max(value = 1800000, message = "Playground execution grace period cannot exceed 1800000ms (30 minutes)")
     private long playgroundExecutionGracePeriod;
 
+    @Min(value = 60000, message = "Playground max execution frequency must be at least 60000ms (1 minute)")
+    @Max(value = 3600000, message = "Playground max execution frequency cannot exceed 3600000ms (1 hour)")
     private long playgroundMaxExecutionFrequency;
 
     @JsonProperty("playground_max_execution_frequency")
