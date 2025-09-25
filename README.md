@@ -10,7 +10,7 @@ A data processing and analytics platform for managing SQL workflows across multi
 - Data reconciliation and validation
 - UDF support with JAR upload
 - AWS EMR and S3 integration
-- React-based frontend dashboard
+- React-based frontend dashboard ([data-phantom-dashboard](https://github.com/arcticOak2/data-phantom-dashboard))
 
 ## Tech Stack
 
