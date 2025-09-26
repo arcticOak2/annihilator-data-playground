@@ -1,8 +1,8 @@
 package com.annihilator.data.playground.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Max;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 public class ConcurrencyConfig {
 

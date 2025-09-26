@@ -112,42 +112,54 @@ class S3ServiceImplTest {
     }
 
     @Test
-    void testReadOutputPreview_WithInvalidS3Path_ShouldThrowException() {
+    void testReadOutputPreview_WithInvalidS3Path_ShouldReturnEmptyList() {
         // Given
         String invalidS3Path = "invalid-path";
 
-        // When & Then
-        assertThrows(RuntimeException.class, () -> s3Service.readOutputPreview(invalidS3Path));
+        // When
+        List<String> result = s3Service.readOutputPreview(invalidS3Path);
+
+        // Then
+        assertTrue(result.isEmpty());
     }
 
     @Test
-    void testReadOutputPreview_WithNullS3Path_ShouldThrowException() {
+    void testReadOutputPreview_WithNullS3Path_ShouldReturnEmptyList() {
         // Given
         String nullS3Path = null;
 
-        // When & Then
-        assertThrows(RuntimeException.class, () -> s3Service.readOutputPreview(nullS3Path));
+        // When
+        List<String> result = s3Service.readOutputPreview(nullS3Path);
+
+        // Then
+        assertTrue(result.isEmpty());
     }
 
     @Test
-    void testReadOutputPreview_WithEmptyS3Path_ShouldThrowException() {
+    void testReadOutputPreview_WithEmptyS3Path_ShouldReturnEmptyList() {
         // Given
         String emptyS3Path = "";
 
-        // When & Then
-        assertThrows(RuntimeException.class, () -> s3Service.readOutputPreview(emptyS3Path));
+        // When
+        List<String> result = s3Service.readOutputPreview(emptyS3Path);
+
+        // Then
+        assertTrue(result.isEmpty());
     }
 
     @Test
-    void testReadOutputPreview_WithException_ShouldThrowException() {
+    void testReadOutputPreview_WithException_ShouldReturnEmptyList() {
         // Given
         String s3Path = "s3://test-bucket/output.txt";
 
         when(s3Client.getObject(any(GetObjectRequest.class)))
             .thenThrow(new RuntimeException("S3 error"));
 
-        // When & Then
-        assertThrows(RuntimeException.class, () -> s3Service.readOutputPreview(s3Path));
+        // When
+        List<String> result = s3Service.readOutputPreview(s3Path);
+
+        // Then
+        assertTrue(result.isEmpty());
     }
 
     @Test

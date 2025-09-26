@@ -1,6 +1,8 @@
 package com.annihilator.data.playground.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
@@ -8,8 +10,8 @@ import jakarta.validation.constraints.NotNull;
 public class ReconciliationConfig {
 
     @NotNull
-    @Min(value = 0.001, message = "False positive rate must be at least 0.001 (0.1%)")
-    @Max(value = 0.5, message = "False positive rate cannot exceed 0.5 (50%)")
+    @DecimalMin(value = "0.001", message = "False positive rate must be at least 0.001 (0.1%)")
+    @DecimalMax(value = "0.5", message = "False positive rate cannot exceed 0.5 (50%)")
     private double falsePositiveRate;
 
     @NotNull

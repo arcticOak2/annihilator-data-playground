@@ -99,15 +99,10 @@ public class S3ServiceImpl implements S3Service {
             
             return previewLines;
             
-        } catch (S3Exception e) {
-            logger.error("Failed to read from S3: {}", e.getMessage());
-        } catch (IOException e) {
-            logger.error("IO error while reading from S3: {}", e.getMessage());
         } catch (Exception e) {
-            logger.error("Unexpected error while reading from S3: {}", e.getMessage());
+            logger.warn("Failed to read preview from S3 path '{}': {}", s3Path, e.getMessage());
+            return Collections.emptyList();
         }
-
-        return Collections.emptyList();
     }
     
     @Override
