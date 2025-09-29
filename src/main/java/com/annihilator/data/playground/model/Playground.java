@@ -1,37 +1,36 @@
 package com.annihilator.data.playground.model;
 
+import java.util.UUID;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 public class Playground {
 
-    private UUID id;
+  private UUID id;
 
-    private String name;
+  private String name;
 
-    private long createdAt;
+  private long createdAt;
 
-    private long modifiedAt;
+  private long modifiedAt;
 
-    private long lastExecutedAt;
+  private long lastExecutedAt;
 
-    private String userId;
+  private String userId;
 
-    private String cronExpression;
+  private String cronExpression;
 
-    private Status currentStatus;
+  private Status currentStatus;
 
-    private Status lastRunStatus;
+  private Status lastRunStatus;
 
-    private long lastRunEndTime;
+  private long lastRunEndTime;
 
-    private int lastRunFailureCount;
+  private int lastRunFailureCount;
 
-    private int lastRunSuccessCount;
+  private int lastRunSuccessCount;
 
-    private UUID correlationId;
+  private UUID correlationId;
 }

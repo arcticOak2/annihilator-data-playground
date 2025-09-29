@@ -6,35 +6,55 @@ import io.dropwizard.db.DataSourceFactory;
 
 public class DataPhantomConfig extends Configuration {
 
-    private DataSourceFactory database;
-    private DataPhantomJwtConfig jwt;
-    private ConnectorConfig connector;
-    private ConcurrencyConfig concurrencyConfig;
+  private DataSourceFactory database;
+  private DataPhantomJwtConfig jwt;
+  private ConnectorConfig connector;
+  private ConcurrencyConfig concurrencyConfig;
 
-    private ReconciliationConfig reconciliationConfig;
+  private ReconciliationConfig reconciliationConfig;
 
-    @JsonProperty("meta_store")
-    public DataSourceFactory getMetaStore() { return database; }
+  @JsonProperty("meta_store")
+  public DataSourceFactory getMetaStore() {
+    return database;
+  }
 
-    @JsonProperty("jwt")
-    public DataPhantomJwtConfig getJwt() { return jwt; }
+  @JsonProperty("jwt")
+  public DataPhantomJwtConfig getJwt() {
+    return jwt;
+  }
 
-    @JsonProperty("connector")
-    public ConnectorConfig getConnector() { return connector; }
+  @JsonProperty("connector")
+  public ConnectorConfig getConnector() {
+    return connector;
+  }
 
-    @JsonProperty("concurrency_config")
-    public ConcurrencyConfig getConcurrencyConfig() { return concurrencyConfig; }
+  @JsonProperty("concurrency_config")
+  public ConcurrencyConfig getConcurrencyConfig() {
+    return concurrencyConfig;
+  }
 
-    @JsonProperty("reconciliation_settings")
-    public ReconciliationConfig getReconciliationConfig() { return reconciliationConfig; }
+  @JsonProperty("reconciliation_settings")
+  public ReconciliationConfig getReconciliationConfig() {
+    return reconciliationConfig;
+  }
 
-    public void setMetaStore(DataSourceFactory database) { this.database = database; }
+  public void setMetaStore(DataSourceFactory database) {
+    this.database = database;
+  }
 
-    public void setJwt(DataPhantomJwtConfig jwt) { this.jwt = jwt; }
+  public void setJwt(DataPhantomJwtConfig jwt) {
+    this.jwt = jwt;
+  }
 
-    public void setConnector(ConnectorConfig connector) { this.connector = connector; }
+  public void setConnector(ConnectorConfig connector) {
+    this.connector = connector;
+  }
 
-    public void setConcurrencyConfig(ConcurrencyConfig concurrencyConfig) { this.concurrencyConfig = concurrencyConfig; }
+  public void setConcurrencyConfig(ConcurrencyConfig concurrencyConfig) {
+    this.concurrencyConfig = concurrencyConfig;
+  }
 
-    public void setReconciliationConfig(ReconciliationConfig reconciliationConfig) { this.reconciliationConfig = reconciliationConfig; }
+  public void setReconciliationConfig(ReconciliationConfig reconciliationConfig) {
+    this.reconciliationConfig = reconciliationConfig;
+  }
 }

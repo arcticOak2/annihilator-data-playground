@@ -4,30 +4,30 @@ import java.security.Principal;
 
 public class DataPhantomUser implements Principal {
 
-    private final String userId;
-    private final String username;
-    private final String email;
+  private final String userId;
+  private final String username;
+  private final String email;
 
-    public DataPhantomUser(String userId, String username, String email) {
-        this.userId = userId;
-        this.username = username;
-        this.email = email;
-    }
+  public DataPhantomUser(String userId, String username, String email) {
+    this.userId = userId;
+    this.username = username;
+    this.email = email;
+  }
 
-    @Override
-    public String getName() {
-        return username;
-    }
+  @Override
+  public String getName() {
+    return username;
+  }
 
-    public String getUserId() {
-        return userId;
-    }
+  public String getUserId() {
+    return userId;
+  }
 
-    public String getUsername() {
-        return username;
-    }
+  public String getUsername() {
+    return username;
+  }
 
-    public String getEmail() {
-        return email;
-    }
+  public String getEmail() {
+    return email;
+  }
 }

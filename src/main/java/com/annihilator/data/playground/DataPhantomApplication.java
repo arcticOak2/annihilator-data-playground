@@ -17,66 +17,67 @@ import io.dropwizard.core.setup.Environment;
 import io.dropwizard.db.DataSourceFactory;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterRegistration;
-import org.eclipse.jetty.servlets.CrossOriginFilter;
-
 import java.sql.SQLException;
 import java.util.EnumSet;
+import org.eclipse.jetty.servlets.CrossOriginFilter;
 
 public class DataPhantomApplication extends Application<DataPhantomConfig> {
 
-    public static void main(String[] args) throws Exception {
-        new DataPhantomApplication().run(args);
-    }
+  public static void main(String[] args) throws Exception {
+    new DataPhantomApplication().run(args);
+  }
 
-    @Override
-    public void initialize(Bootstrap<DataPhantomConfig> bootstrap) {
+  @Override
+  public void initialize(Bootstrap<DataPhantomConfig> bootstrap) {}
 
-    }
+  @Override
+  public void run(DataPhantomConfig config, Environment environment) throws SQLException {
 
-    @Override
-    public void run(DataPhantomConfig config, Environment environment) throws SQLException {
+    DataSourceFactory dataSourceFactory = config.getMetaStore();
+    dataSourceFactory.build(environment.metrics(), "database");
 
-        DataSourceFactory dataSourceFactory = config.getMetaStore();
-        dataSourceFactory.build(environment.metrics(), "database");
+    final DataPhantomApplicationHealthCheck healthCheck = new DataPhantomApplicationHealthCheck();
+    environment.healthChecks().register("app", healthCheck);
 
-        final DataPhantomApplicationHealthCheck healthCheck = new DataPhantomApplicationHealthCheck();
-        environment.healthChecks().register("app", healthCheck);
-
-        JwtService jwtService = createJwtService(config.getJwt());
-        environment.jersey().register(new AuthDynamicFeature(
+    JwtService jwtService = createJwtService(config.getJwt());
+    environment
+        .jersey()
+        .register(
+            new AuthDynamicFeature(
                 new OAuthCredentialAuthFilter.Builder<DataPhantomUser>()
-                        .setAuthenticator(new DataPhantomAuthenticator(jwtService))
-                        .setPrefix("Bearer")
-                        .buildAuthFilter()
-        ));
+                    .setAuthenticator(new DataPhantomAuthenticator(jwtService))
+                    .setPrefix("Bearer")
+                    .buildAuthFilter()));
 
-        // Create database connection and DAOs
-        MetaDBConnection metaDBConnection = new MetaDBConnection(config.getMetaStore(), environment);
-        UserDAOImpl userDAO = new UserDAOImpl(metaDBConnection);
+    // Create database connection and DAOs
+    MetaDBConnection metaDBConnection = new MetaDBConnection(config.getMetaStore(), environment);
+    UserDAOImpl userDAO = new UserDAOImpl(metaDBConnection);
 
-        // Register resources
-        final DataPhantomResource resource = new DataPhantomResource(config, environment);
-        environment.jersey().register(resource);
-        
-        final AuthResource authResource = new AuthResource(userDAO, jwtService);
-        environment.jersey().register(authResource);
+    // Register resources
+    final DataPhantomResource resource = new DataPhantomResource(config, environment);
+    environment.jersey().register(resource);
 
-        final FilterRegistration.Dynamic cors =
-                environment.servlets().addFilter("CORS", CrossOriginFilter.class);
+    final AuthResource authResource = new AuthResource(userDAO, jwtService);
+    environment.jersey().register(authResource);
 
-        cors.setInitParameter(CrossOriginFilter.ALLOWED_ORIGINS_PARAM, "http://localhost:3000");
-        cors.setInitParameter(CrossOriginFilter.ALLOWED_HEADERS_PARAM, "X-Requested-With,Content-Type,Accept,Origin,Authorization");
-        cors.setInitParameter(CrossOriginFilter.ALLOWED_METHODS_PARAM, "OPTIONS,GET,PUT,POST,DELETE,HEAD");
-        cors.setInitParameter(CrossOriginFilter.ALLOW_CREDENTIALS_PARAM, "true");
+    final FilterRegistration.Dynamic cors =
+        environment.servlets().addFilter("CORS", CrossOriginFilter.class);
 
-        cors.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, "/*");
-    }
+    cors.setInitParameter(CrossOriginFilter.ALLOWED_ORIGINS_PARAM, "http://localhost:3000");
+    cors.setInitParameter(
+        CrossOriginFilter.ALLOWED_HEADERS_PARAM,
+        "X-Requested-With,Content-Type,Accept,Origin,Authorization");
+    cors.setInitParameter(
+        CrossOriginFilter.ALLOWED_METHODS_PARAM, "OPTIONS,GET,PUT,POST,DELETE,HEAD");
+    cors.setInitParameter(CrossOriginFilter.ALLOW_CREDENTIALS_PARAM, "true");
 
-    private JwtService createJwtService(DataPhantomJwtConfig config) {
-        return new JwtService(
-                config.getSecretKey(),
-                config.getTokenExpirationMinutes(),
-                config.getRefreshTokenExpirationDays()
-        );
-    }
+    cors.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), true, "/*");
+  }
+
+  private JwtService createJwtService(DataPhantomJwtConfig config) {
+    return new JwtService(
+        config.getSecretKey(),
+        config.getTokenExpirationMinutes(),
+        config.getRefreshTokenExpirationDays());
+  }
 }
