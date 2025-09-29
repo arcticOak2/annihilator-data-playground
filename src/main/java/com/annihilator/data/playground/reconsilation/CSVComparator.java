@@ -4,6 +4,7 @@ import java.sql.SQLException;
 
 public interface CSVComparator {
 
-    void runAllReconciliation(String playgroundId) throws SQLException;
-    void runReconciliation(String reconciliationId) throws SQLException;
+  void runAllReconciliation(String playgroundId) throws SQLException;
+
+  void runReconciliation(String reconciliationId) throws SQLException;
 }

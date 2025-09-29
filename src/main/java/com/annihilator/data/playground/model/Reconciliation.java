@@ -1,27 +1,26 @@
 package com.annihilator.data.playground.model;
 
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Reconciliation {
 
-    UUID reconciliationId;
+  UUID reconciliationId;
 
-    String playgroundId;
+  String playgroundId;
 
-    String leftTableId;
+  String leftTableId;
 
-    String rightTableId;
+  String rightTableId;
 
-    String mapping;
+  String mapping;
 
-    long createdAt;
+  long createdAt;
 
-    long updatedAt;
+  long updatedAt;
 }

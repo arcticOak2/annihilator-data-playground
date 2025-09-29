@@ -1,26 +1,26 @@
-//package com.annihilator.data.playground.core;
+// package com.annihilator.data.playground.core;
 //
-//import com.annihilator.data.playground.cloud.aws.EMRService;
-//import com.annihilator.data.playground.cloud.aws.EMRServiceImpl;
-//import com.annihilator.data.playground.db.PlaygroundDAO;
-//import com.annihilator.data.playground.db.TaskDAO;
-//import com.annihilator.data.playground.model.*;
-//import org.junit.jupiter.api.BeforeEach;
-//import org.junit.jupiter.api.Test;
-//import org.junit.jupiter.api.extension.ExtendWith;
-//import org.mockito.Mock;
-//import org.mockito.junit.jupiter.MockitoExtension;
-//import software.amazon.awssdk.services.emr.model.StepState;
+// import com.annihilator.data.playground.cloud.aws.EMRService;
+// import com.annihilator.data.playground.cloud.aws.EMRServiceImpl;
+// import com.annihilator.data.playground.db.PlaygroundDAO;
+// import com.annihilator.data.playground.db.TaskDAO;
+// import com.annihilator.data.playground.model.*;
+// import org.junit.jupiter.api.BeforeEach;
+// import org.junit.jupiter.api.Test;
+// import org.junit.jupiter.api.extension.ExtendWith;
+// import org.mockito.Mock;
+// import org.mockito.junit.jupiter.MockitoExtension;
+// import software.amazon.awssdk.services.emr.model.StepState;
 //
-//import java.sql.SQLException;
-//import java.util.*;
+// import java.sql.SQLException;
+// import java.util.*;
 //
-//import static org.junit.jupiter.api.Assertions.*;
-//import static org.mockito.ArgumentMatchers.*;
-//import static org.mockito.Mockito.*;
+// import static org.junit.jupiter.api.Assertions.*;
+// import static org.mockito.ArgumentMatchers.*;
+// import static org.mockito.Mockito.*;
 //
-//@ExtendWith(MockitoExtension.class)
-//class DataPhantomPlaygroundExecutorTest {
+// @ExtendWith(MockitoExtension.class)
+// class DataPhantomPlaygroundExecutorTest {
 //
 //    @Mock
 //    private PlaygroundDAO playgroundDAO;
@@ -89,7 +89,8 @@
 //            PlaygroundExecutionType.AD_HOC, cancelPlaygroundRequestSet, false, null
 //        );
 //
-//        when(taskDAO.findTasksByPlaygroundRecursively(playground.getId())).thenReturn(Collections.emptyList());
+//
+// when(taskDAO.findTasksByPlaygroundRecursively(playground.getId())).thenReturn(Collections.emptyList());
 //
 //        // When
 //        executor.run();
@@ -140,7 +141,8 @@
 //        // Add playground to cancel set
 //        cancelPlaygroundRequestSet.add(playground.getId().toString());
 //
-//        when(taskDAO.findTasksByPlaygroundRecursively(playground.getId())).thenReturn(Collections.emptyList());
+//
+// when(taskDAO.findTasksByPlaygroundRecursively(playground.getId())).thenReturn(Collections.emptyList());
 //
 //        // When
 //        executor.run();
@@ -158,7 +160,8 @@
 //            PlaygroundExecutionType.SCHEDULED, cancelPlaygroundRequestSet, false, null
 //        );
 //
-//        when(taskDAO.findTasksByPlaygroundRecursively(playground.getId())).thenReturn(Collections.emptyList());
+//
+// when(taskDAO.findTasksByPlaygroundRecursively(playground.getId())).thenReturn(Collections.emptyList());
 //
 //        // When
 //        executor.run();
@@ -200,4 +203,4 @@
 //            queryId
 //        );
 //    }
-//}
+// }

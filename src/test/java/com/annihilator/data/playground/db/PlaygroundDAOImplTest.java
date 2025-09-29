@@ -1,24 +1,24 @@
-//package com.annihilator.data.playground.db;
+// package com.annihilator.data.playground.db;
 //
-//import com.annihilator.data.playground.model.Playground;
-//import com.annihilator.data.playground.model.Status;
-//import org.junit.jupiter.api.BeforeEach;
-//import org.junit.jupiter.api.Test;
-//import org.junit.jupiter.api.extension.ExtendWith;
-//import org.mockito.Mock;
-//import org.mockito.junit.jupiter.MockitoExtension;
+// import com.annihilator.data.playground.model.Playground;
+// import com.annihilator.data.playground.model.Status;
+// import org.junit.jupiter.api.BeforeEach;
+// import org.junit.jupiter.api.Test;
+// import org.junit.jupiter.api.extension.ExtendWith;
+// import org.mockito.Mock;
+// import org.mockito.junit.jupiter.MockitoExtension;
 //
-//import java.sql.*;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.UUID;
+// import java.sql.*;
+// import java.util.List;
+// import java.util.Map;
+// import java.util.UUID;
 //
-//import static org.junit.jupiter.api.Assertions.*;
-//import static org.mockito.ArgumentMatchers.*;
-//import static org.mockito.Mockito.*;
+// import static org.junit.jupiter.api.Assertions.*;
+// import static org.mockito.ArgumentMatchers.*;
+// import static org.mockito.Mockito.*;
 //
-//@ExtendWith(MockitoExtension.class)
-//class PlaygroundDAOImplTest {
+// @ExtendWith(MockitoExtension.class)
+// class PlaygroundDAOImplTest {
 //
 //    @Mock
 //    private MetaDBConnection metaDBConnection;
@@ -111,7 +111,8 @@
 //        when(preparedStatement.executeUpdate()).thenThrow(new SQLException("Database error"));
 //
 //        // When & Then
-//        assertThrows(SQLException.class, () -> playgroundDAO.updatePlayground(id, newName, cronExpression));
+//        assertThrows(SQLException.class, () -> playgroundDAO.updatePlayground(id, newName,
+// cronExpression));
 //        verify(preparedStatement).close();
 //        verify(connection).close();
 //    }
@@ -131,7 +132,8 @@
 //        when(resultSet.getLong("modified_at")).thenReturn(System.currentTimeMillis());
 //        when(resultSet.getLong("last_executed_at")).thenReturn(System.currentTimeMillis());
 //        when(resultSet.getString("current_status")).thenReturn("IDLE");
-//        when(resultSet.getString("correlation_id")).thenReturn("550e8400-e29b-41d4-a716-446655440000");
+//
+// when(resultSet.getString("correlation_id")).thenReturn("550e8400-e29b-41d4-a716-446655440000");
 //
 //        // When
 //        Playground result = playgroundDAO.getPlaygroundById(id);
@@ -186,12 +188,16 @@
 //        when(resultSet.next()).thenReturn(true, true, false);
 //
 //        // Mock the fields that the method actually uses
-//        // The method calls getString("id") twice for each row (once for the object, once for the map key)
-//        when(resultSet.getString("id")).thenReturn("550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440001");
+//        // The method calls getString("id") twice for each row (once for the object, once for the
+// map key)
+//        when(resultSet.getString("id")).thenReturn("550e8400-e29b-41d4-a716-446655440000",
+// "550e8400-e29b-41d4-a716-446655440000", "550e8400-e29b-41d4-a716-446655440001",
+// "550e8400-e29b-41d4-a716-446655440001");
 //        when(resultSet.getString("name")).thenReturn("Playground 1", "Playground 2");
 //        when(resultSet.getString("user_id")).thenReturn("user1", "user2");
 //        when(resultSet.getString("cron_expression")).thenReturn("0 0 12 * * ?", "0 0 18 * * ?");
-//        when(resultSet.getLong("created_at")).thenReturn(System.currentTimeMillis(), System.currentTimeMillis());
+//        when(resultSet.getLong("created_at")).thenReturn(System.currentTimeMillis(),
+// System.currentTimeMillis());
 //
 //        // When
 //        Map<String, Playground> result = playgroundDAO.getAllPlaygrounds();
@@ -206,7 +212,8 @@
 //    }
 //
 //    @Test
-//    void testGetAllPlaygroundsByStatus_WithValidStatus_ShouldReturnPlaygrounds() throws SQLException {
+//    void testGetAllPlaygroundsByStatus_WithValidStatus_ShouldReturnPlaygrounds() throws
+// SQLException {
 //        // Given
 //        Status status = Status.RUNNING;
 //        when(connection.prepareStatement(anyString())).thenReturn(preparedStatement);
@@ -218,7 +225,8 @@
 //        when(resultSet.getString("cron_expression")).thenReturn("0 0 12 * * ?");
 //        when(resultSet.getLong("created_at")).thenReturn(System.currentTimeMillis());
 //        when(resultSet.getLong("modified_at")).thenReturn(System.currentTimeMillis());
-//        when(resultSet.getString("correlation_id")).thenReturn("550e8400-e29b-41d4-a716-446655440000");
+//
+// when(resultSet.getString("correlation_id")).thenReturn("550e8400-e29b-41d4-a716-446655440000");
 //
 //        // When
 //        List<Playground> result = playgroundDAO.getAllPlaygroundsByStatus(status);
@@ -330,7 +338,8 @@
 //        when(preparedStatement.executeUpdate()).thenReturn(1);
 //
 //        // When
-//        playgroundDAO.updatePlaygroundCompletion(id, status, endTime, successCount, failureCount, finalStatus);
+//        playgroundDAO.updatePlaygroundCompletion(id, status, endTime, successCount, failureCount,
+// finalStatus);
 //
 //        // Then
 //        verify(connection).prepareStatement(contains("UPDATE playgrounds"));
@@ -357,4 +366,4 @@
 //        playground.setCurrentStatus(Status.IDLE);
 //        return playground;
 //    }
-//}
+// }

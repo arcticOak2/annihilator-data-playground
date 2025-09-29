@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CSVComparisonResult {
 
-    private int leftFileRowCount;
-    private int rightFileRowCount;
-    private int commonRowCount;
-    private int leftFileExclusiveRowCount;
-    private int rightFileExclusiveRowCount;
-    private String sampleCommonRowsS3Path;
-    private String sampleExclusiveLeftRowsS3Path;
-    private String sampleExclusiveRightRowsS3Path;
+  private int leftFileRowCount;
+  private int rightFileRowCount;
+  private int commonRowCount;
+  private int leftFileExclusiveRowCount;
+  private int rightFileExclusiveRowCount;
+  private String sampleCommonRowsS3Path;
+  private String sampleExclusiveLeftRowsS3Path;
+  private String sampleExclusiveRightRowsS3Path;
 }

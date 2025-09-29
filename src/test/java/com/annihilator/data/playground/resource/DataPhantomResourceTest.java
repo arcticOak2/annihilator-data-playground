@@ -1,21 +1,21 @@
-//package com.annihilator.data.playground.resource;
+// package com.annihilator.data.playground.resource;
 //
-//import com.annihilator.data.playground.config.AWSEmrConfig;
-//import com.annihilator.data.playground.config.DataPhantomConfig;
-//import com.annihilator.data.playground.config.DataPhantomDBConfig;
-//import org.junit.jupiter.api.BeforeEach;
-//import org.junit.jupiter.api.Test;
-//import org.junit.jupiter.api.extension.ExtendWith;
-//import org.mockito.Mock;
-//import org.mockito.junit.jupiter.MockitoExtension;
+// import com.annihilator.data.playground.config.AWSEmrConfig;
+// import com.annihilator.data.playground.config.DataPhantomConfig;
+// import com.annihilator.data.playground.config.DataPhantomDBConfig;
+// import org.junit.jupiter.api.BeforeEach;
+// import org.junit.jupiter.api.Test;
+// import org.junit.jupiter.api.extension.ExtendWith;
+// import org.mockito.Mock;
+// import org.mockito.junit.jupiter.MockitoExtension;
 //
-//import java.sql.SQLException;
+// import java.sql.SQLException;
 //
-//import static org.junit.jupiter.api.Assertions.*;
-//import static org.mockito.Mockito.*;
+// import static org.junit.jupiter.api.Assertions.*;
+// import static org.mockito.Mockito.*;
 //
-//@ExtendWith(MockitoExtension.class)
-//class DataPhantomResourceTest {
+// @ExtendWith(MockitoExtension.class)
+// class DataPhantomResourceTest {
 //
 //    @Mock
 //    private DataPhantomConfig config;
@@ -178,4 +178,4 @@
 //        assertEquals("DataPhantomResource", resourceClass.getSimpleName());
 //        assertTrue(resourceClass.getName().contains("DataPhantomResource"));
 //    }
-//}
+// }
