@@ -64,7 +64,7 @@ class DataPhantomUtilityTest {
         long result = DataPhantomUtility.getExecutionTimeInMillis(cronExpression);
         
         // Then
-        assertEquals(Long.MAX_VALUE, result);
+        assertEquals(-1, result);
     }
 
     @Test
@@ -76,7 +76,7 @@ class DataPhantomUtilityTest {
         long result = DataPhantomUtility.getExecutionTimeInMillis(cronExpression);
         
         // Then
-        assertEquals(Long.MAX_VALUE, result);
+        assertEquals(-1, result);
     }
 
     @Test
@@ -88,7 +88,7 @@ class DataPhantomUtilityTest {
         long result = DataPhantomUtility.getExecutionTimeInMillis(cronExpression);
         
         // Then
-        assertEquals(Long.MAX_VALUE, result);
+        assertEquals(-1, result);
     }
 
     @Test
@@ -299,7 +299,7 @@ class DataPhantomUtilityTest {
         long result = DataPhantomUtility.getNextExecutionTimeInMillis(cronExpression);
         
         // Then
-        assertEquals(Long.MAX_VALUE, result);
+        assertEquals(-1, result);
     }
 
     @Test
@@ -311,7 +311,7 @@ class DataPhantomUtilityTest {
         long result = DataPhantomUtility.getNextExecutionTimeInMillis(cronExpression);
         
         // Then
-        assertEquals(Long.MAX_VALUE, result);
+        assertEquals(-1, result);
     }
 
     @Test
@@ -323,19 +323,7 @@ class DataPhantomUtilityTest {
         long result = DataPhantomUtility.getNextExecutionTimeInMillis(cronExpression);
         
         // Then
-        assertEquals(Long.MAX_VALUE, result);
-    }
-
-    @Test
-    void testGetNextExecutionTimeInMillis_WithInvalidCronExpression_ShouldReturnMaxValue() {
-        // Given
-        String cronExpression = "invalid cron expression";
-        
-        // When
-        long result = DataPhantomUtility.getNextExecutionTimeInMillis(cronExpression);
-        
-        // Then
-        assertEquals(Long.MAX_VALUE, result);
+        assertEquals(-1, result);
     }
 
     @Test

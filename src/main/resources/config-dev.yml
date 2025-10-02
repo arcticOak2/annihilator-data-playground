@@ -37,6 +37,13 @@ reconciliation_settings:
   false_positive_rate: 0.1
   estimated_rows: 1000000
 
+notification:
+  aws_ses:
+    access_key: ${AWS_SES_ACCESS_KEY:your-ses-access-key}
+    secret_key: ${AWS_SES_SECRET_KEY:your-ses-secret-key}
+    from: ${NOTIFICATION_FROM_EMAIL:noreply@example.com}
+    to: ${NOTIFICATION_TO_EMAIL:admin@example.com}
+
 connector:
   aws_emr:
     access_key: ${AWS_ACCESS_KEY_ID:your-access-key}

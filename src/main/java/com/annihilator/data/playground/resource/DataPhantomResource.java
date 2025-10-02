@@ -7,20 +7,67 @@ import com.annihilator.data.playground.config.ConcurrencyConfig;
 import com.annihilator.data.playground.config.DataPhantomConfig;
 import com.annihilator.data.playground.connector.MySQLConnector;
 import com.annihilator.data.playground.core.DataPhantomPlaygroundExecutor;
-import com.annihilator.data.playground.db.*;
-import com.annihilator.data.playground.model.*;
+import com.annihilator.data.playground.db.AdhocLimitedInputDAO;
+import com.annihilator.data.playground.db.AdhocLimitedInputDAOImpl;
+import com.annihilator.data.playground.db.MetaDBConnection;
+import com.annihilator.data.playground.db.NotificationDestinationDAO;
+import com.annihilator.data.playground.db.NotificationDestinationDAOImpl;
+import com.annihilator.data.playground.db.PlaygroundDAO;
+import com.annihilator.data.playground.db.PlaygroundDAOImpl;
+import com.annihilator.data.playground.db.PlaygroundRunHistoryDAO;
+import com.annihilator.data.playground.db.PlaygroundRunHistoryDAOImpl;
+import com.annihilator.data.playground.db.ReconciliationMappingDAO;
+import com.annihilator.data.playground.db.ReconciliationMappingDAOImpl;
+import com.annihilator.data.playground.db.ReconciliationResultsDAO;
+import com.annihilator.data.playground.db.ReconciliationResultsDAOImpl;
+import com.annihilator.data.playground.db.TaskDAO;
+import com.annihilator.data.playground.db.TaskDAOImpl;
+import com.annihilator.data.playground.db.UDFDAO;
+import com.annihilator.data.playground.db.UDFDAOImpl;
+import com.annihilator.data.playground.db.UserDAO;
+import com.annihilator.data.playground.db.UserDAOImpl;
+import com.annihilator.data.playground.model.CSVComparisonResult;
+import com.annihilator.data.playground.model.LimitedRunRequest;
+import com.annihilator.data.playground.model.NotificationDestination;
+import com.annihilator.data.playground.model.Playground;
+import com.annihilator.data.playground.model.PlaygroundExecutionType;
+import com.annihilator.data.playground.model.Reconciliation;
+import com.annihilator.data.playground.model.ReconciliationMappingRequest;
+import com.annihilator.data.playground.model.ReconciliationMappingUpdateRequest;
+import com.annihilator.data.playground.model.ReconciliationResultResponse;
+import com.annihilator.data.playground.model.Status;
+import com.annihilator.data.playground.model.Task;
+import com.annihilator.data.playground.model.UDF;
+import com.annihilator.data.playground.model.User;
 import com.annihilator.data.playground.core.DataPhantomSchedulerAssistant;
+import com.annihilator.data.playground.notification.NotificationService;
 import com.annihilator.data.playground.reconsilation.DataPhantomReconciliationManager;
 import com.annihilator.data.playground.reconsilation.AdaptiveCSVComparator;
 import io.dropwizard.auth.Auth;
-import jakarta.ws.rs.*;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -42,6 +89,8 @@ public class DataPhantomResource {
     private final DataPhantomReconciliationManager reconciliationManager;
     private final ReconciliationMappingDAO reconciliationMappingDAO;
     private final ReconciliationResultsDAO reconciliationResultsDAO;
+    private final NotificationDestinationDAO notificationDestinationDAO;
+    private final NotificationService notificationService;
     private final UDFDAO udfDAO;
     private final MySQLConnector mysqlConnector;
     private ExecutorService adhocExecutorService;
@@ -71,6 +120,8 @@ public class DataPhantomResource {
         this.reconciliationFutures = Collections.synchronizedMap(new HashMap<>());
         this.reconciliationMappingDAO = new ReconciliationMappingDAOImpl(metaDBConnection);
         this.reconciliationResultsDAO = new ReconciliationResultsDAOImpl(metaDBConnection);
+        this.notificationDestinationDAO = new NotificationDestinationDAOImpl(metaDBConnection);
+        this.notificationService = new com.annihilator.data.playground.notification.SESNotificationService(config.getNotification().getAwsSes());
         this.reconciliationManager = new DataPhantomReconciliationManager(taskDAO,
                 new AdaptiveCSVComparator(s3Service, reconciliationMappingDAO, reconciliationResultsDAO, taskDAO, config.getReconciliationConfig()));
 
@@ -105,7 +156,12 @@ public class DataPhantomResource {
                                 cancelPlaygroundRequestSet,
                                 mysqlConnector,
                                 limitedRunRequest != null,
-                                Optional.ofNullable(limitedRunRequest).map(LimitedRunRequest::getTasksToRun).orElse(null))
+                                Optional.ofNullable(limitedRunRequest).map(LimitedRunRequest::getTasksToRun).orElse(null),
+                                notificationDestinationDAO,
+                                s3Service,
+                                notificationService,
+                                reconciliationMappingDAO,
+                                reconciliationResultsDAO)
                 );
             }
         } catch (SQLException e) {
@@ -130,7 +186,12 @@ public class DataPhantomResource {
                 this.scheduledExecutorService,
                 reconciliationManager,
                 this.cancelPlaygroundRequestSet,
-                this.mysqlConnector));
+                this.mysqlConnector,
+                this.notificationDestinationDAO,
+                this.s3Service,
+                this.notificationService,
+                this.reconciliationMappingDAO,
+                this.reconciliationResultsDAO));
         schedulerThread.setDaemon(true);
         schedulerThread.start();
     }
@@ -217,7 +278,12 @@ public class DataPhantomResource {
                     cancelPlaygroundRequestSet,
                     mysqlConnector,
                     false,
-                    null));
+                    null,
+                    notificationDestinationDAO,
+                    s3Service,
+                    notificationService,
+                    reconciliationMappingDAO,
+                    reconciliationResultsDAO));
 
             logger.info("Adhoc run started for playground {}", playground.getName());
 
@@ -293,7 +359,12 @@ public class DataPhantomResource {
                     cancelPlaygroundRequestSet,
                     mysqlConnector,
                     true,
-                    limitedRunRequest.getTasksToRun())
+                    limitedRunRequest.getTasksToRun(),
+                    notificationDestinationDAO,
+                    s3Service,
+                    notificationService,
+                    reconciliationMappingDAO,
+                    reconciliationResultsDAO)
             );
 
             logger.info("Limited adhoc run started for playground {}", playground.getName());
@@ -935,6 +1006,125 @@ public class DataPhantomResource {
             logger.error("Error deleting UDF: {}", udfId, e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity("{\"error\": \"Failed to delete UDF\"}")
+                    .build();
+        }
+    }
+
+    // Notification Destination APIs
+
+    @POST
+    @Path("/notification-destinations")
+    public Response createNotificationDestination(NotificationDestination destination) {
+        try {
+            destination.setId(UUID.randomUUID());
+            destination.setCreatedAt(System.currentTimeMillis());
+            
+            notificationDestinationDAO.createNotificationDestination(destination);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Notification destination created successfully");
+            response.put("destination", destination);
+
+            return Response.status(Response.Status.CREATED)
+                    .entity(response)
+                    .build();
+
+        } catch (SQLException e) {
+            logger.error("Error creating notification destination", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Failed to create notification destination\"}")
+                    .build();
+        }
+    }
+
+    @GET
+    @Path("/notification-destinations/playground/{playgroundId}")
+    public Response getNotificationDestinationsByPlaygroundId(@PathParam("playgroundId") String playgroundId) {
+        try {
+            UUID playgroundUUID = UUID.fromString(playgroundId);
+            List<NotificationDestination> destinations = notificationDestinationDAO.getNotificationDestinationsByPlaygroundId(playgroundUUID);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("destinations", destinations);
+            response.put("count", destinations.size());
+
+            return Response.ok()
+                    .entity(response)
+                    .build();
+
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid playground ID format: {}", playgroundId, e);
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\": \"Invalid playground ID format\"}")
+                    .build();
+        } catch (SQLException e) {
+            logger.error("Error fetching notification destinations for playground: {}", playgroundId, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Failed to fetch notification destinations\"}")
+                    .build();
+        }
+    }
+
+    @GET
+    @Path("/notification-destinations/{destinationId}")
+    public Response getNotificationDestinationById(@PathParam("destinationId") String destinationId) {
+        try {
+            UUID destinationUUID = UUID.fromString(destinationId);
+            NotificationDestination destination = notificationDestinationDAO.getNotificationDestinationById(destinationUUID);
+
+            if (destination == null) {
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity("{\"error\": \"Notification destination not found\"}")
+                        .build();
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("destination", destination);
+
+            return Response.ok()
+                    .entity(response)
+                    .build();
+
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid destination ID format: {}", destinationId, e);
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\": \"Invalid destination ID format\"}")
+                    .build();
+        } catch (SQLException e) {
+            logger.error("Error fetching notification destination: {}", destinationId, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Failed to fetch notification destination\"}")
+                    .build();
+        }
+    }
+
+    @DELETE
+    @Path("/notification-destinations/{destinationId}")
+    public Response deleteNotificationDestinationById(@PathParam("destinationId") String destinationId) {
+        try {
+            UUID destinationUUID = UUID.fromString(destinationId);
+            notificationDestinationDAO.deleteNotificationDestinationById(destinationUUID);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Notification destination deleted successfully");
+
+            return Response.ok()
+                    .entity(response)
+                    .build();
+
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid destination ID format: {}", destinationId, e);
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"error\": \"Invalid destination ID format\"}")
+                    .build();
+        } catch (SQLException e) {
+            logger.error("Error deleting notification destination: {}", destinationId, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity("{\"error\": \"Failed to delete notification destination\"}")
                     .build();
         }
     }

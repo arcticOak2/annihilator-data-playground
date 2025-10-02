@@ -181,3 +181,19 @@ CREATE TABLE `udfs` (
                         KEY `idx_user_function` (`user_id`,`function_name`),
                         CONSTRAINT `fk_udf_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+
+-- ============================
+-- Notification Destinations
+-- ============================
+
+CREATE TABLE `notification_destinations` (
+                                             `id` char(36) NOT NULL,
+                                             `playground_id` char(36) NOT NULL,
+                                             `destination_type` varchar(50) NOT NULL,
+                                             `destination` varchar(500) NOT NULL,
+                                             `created_at` bigint(20) NOT NULL,
+                                             PRIMARY KEY (`id`),
+                                             KEY `fk_notification_playground` (`playground_id`),
+                                             KEY `idx_playground_type` (`playground_id`,`destination_type`),
+                                             CONSTRAINT `fk_notification_playground` FOREIGN KEY (`playground_id`) REFERENCES `playgrounds` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci

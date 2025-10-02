@@ -10,7 +10,7 @@ public class DataPhantomConfig extends Configuration {
     private DataPhantomJwtConfig jwt;
     private ConnectorConfig connector;
     private ConcurrencyConfig concurrencyConfig;
-
+    private NotificationConfig notification;
     private ReconciliationConfig reconciliationConfig;
 
     @JsonProperty("meta_store")
@@ -25,6 +25,9 @@ public class DataPhantomConfig extends Configuration {
     @JsonProperty("concurrency_config")
     public ConcurrencyConfig getConcurrencyConfig() { return concurrencyConfig; }
 
+    @JsonProperty("notification")
+    public NotificationConfig getNotification() { return notification; }
+
     @JsonProperty("reconciliation_settings")
     public ReconciliationConfig getReconciliationConfig() { return reconciliationConfig; }
 
@@ -35,6 +38,8 @@ public class DataPhantomConfig extends Configuration {
     public void setConnector(ConnectorConfig connector) { this.connector = connector; }
 
     public void setConcurrencyConfig(ConcurrencyConfig concurrencyConfig) { this.concurrencyConfig = concurrencyConfig; }
+
+    public void setNotification(NotificationConfig notification) { this.notification = notification; }
 
     public void setReconciliationConfig(ReconciliationConfig reconciliationConfig) { this.reconciliationConfig = reconciliationConfig; }
 }
