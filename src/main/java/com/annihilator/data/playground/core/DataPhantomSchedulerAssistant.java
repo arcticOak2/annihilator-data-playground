@@ -1,23 +1,37 @@
 package com.annihilator.data.playground.core;
 
 import com.annihilator.data.playground.cloud.aws.EMRService;
+import com.annihilator.data.playground.cloud.aws.S3Service;
 import com.annihilator.data.playground.config.ConcurrencyConfig;
 import com.annihilator.data.playground.connector.MySQLConnector;
 import com.annihilator.data.playground.db.AdhocLimitedInputDAO;
+import com.annihilator.data.playground.db.NotificationDestinationDAO;
 import com.annihilator.data.playground.db.PlaygroundDAO;
 import com.annihilator.data.playground.db.PlaygroundRunHistoryDAO;
+import com.annihilator.data.playground.db.ReconciliationMappingDAO;
+import com.annihilator.data.playground.db.ReconciliationResultsDAO;
 import com.annihilator.data.playground.db.TaskDAO;
 import com.annihilator.data.playground.model.Playground;
 import com.annihilator.data.playground.model.PlaygroundExecutionType;
+import com.annihilator.data.playground.notification.NotificationService;
 import com.annihilator.data.playground.reconsilation.DataPhantomReconciliationManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
-import static com.annihilator.data.playground.utility.DataPhantomUtility.*;
+import static com.annihilator.data.playground.utility.DataPhantomUtility.getCurrentTimeInMillis;
+import static com.annihilator.data.playground.utility.DataPhantomUtility.getNextExecutionTimeInMillis;
 
 public class DataPhantomSchedulerAssistant implements Runnable {
 
@@ -36,6 +50,11 @@ public class DataPhantomSchedulerAssistant implements Runnable {
     private DataPhantomReconciliationManager reconciliationManager;
     private MySQLConnector mySQLConnector;
     private ConcurrencyConfig concurrencyConfig;
+    private NotificationDestinationDAO notificationDestinationDAO;
+    private S3Service s3Service;
+    private NotificationService notificationService;
+    private ReconciliationMappingDAO reconciliationMappingDAO;
+    private ReconciliationResultsDAO reconciliationResultsDAO;
 
     public DataPhantomSchedulerAssistant(ConcurrencyConfig concurrencyConfig,
                                          PlaygroundDAO playgroundDAO,
@@ -46,7 +65,12 @@ public class DataPhantomSchedulerAssistant implements Runnable {
                                          ExecutorService executorService,
                                          DataPhantomReconciliationManager reconciliationManager,
                                          Set<String> cancelPlaygroundRequestSet,
-                                         MySQLConnector mySQLConnector) {
+                                         MySQLConnector mySQLConnector,
+                                         NotificationDestinationDAO notificationDestinationDAO,
+                                         S3Service s3Service,
+                                         NotificationService notificationService,
+                                         ReconciliationMappingDAO reconciliationMappingDAO,
+                                         ReconciliationResultsDAO reconciliationResultsDAO) {
 
         this.playgroundDAO = playgroundDAO;
         this.historyDAO = historyDAO;
@@ -60,6 +84,11 @@ public class DataPhantomSchedulerAssistant implements Runnable {
         this.reconciliationManager = reconciliationManager;
         this.mySQLConnector = mySQLConnector;
         this.concurrencyConfig = concurrencyConfig;
+        this.notificationDestinationDAO = notificationDestinationDAO;
+        this.s3Service = s3Service;
+        this.notificationService = notificationService;
+        this.reconciliationMappingDAO = reconciliationMappingDAO;
+        this.reconciliationResultsDAO = reconciliationResultsDAO;
     }
 
     private void loadQueue() {
@@ -166,7 +195,12 @@ public class DataPhantomSchedulerAssistant implements Runnable {
                                 cancelPlaygroundRequestSet,
                                 mySQLConnector,
                                 false,
-                                null));
+                                null,
+                                notificationDestinationDAO,
+                                s3Service,
+                                notificationService,
+                                reconciliationMappingDAO,
+                                reconciliationResultsDAO));
 
                 if(hasMoreExecutions(nextPlayground)) {
 

@@ -1,18 +1,40 @@
 package com.annihilator.data.playground.core;
 
 import com.annihilator.data.playground.cloud.aws.EMRService;
+import com.annihilator.data.playground.cloud.aws.S3Service;
 import com.annihilator.data.playground.connector.MySQLConnector;
 import com.annihilator.data.playground.db.AdhocLimitedInputDAO;
+import com.annihilator.data.playground.db.NotificationDestinationDAO;
 import com.annihilator.data.playground.db.PlaygroundDAO;
 import com.annihilator.data.playground.db.PlaygroundRunHistoryDAO;
+import com.annihilator.data.playground.db.ReconciliationMappingDAO;
+import com.annihilator.data.playground.db.ReconciliationResultsDAO;
 import com.annihilator.data.playground.db.TaskDAO;
-import com.annihilator.data.playground.model.*;
+import com.annihilator.data.playground.model.LimitedRunRequest;
+import com.annihilator.data.playground.model.NotificationDestination;
+import com.annihilator.data.playground.model.Playground;
+import com.annihilator.data.playground.model.PlaygroundExecutionType;
+import com.annihilator.data.playground.model.Status;
+import com.annihilator.data.playground.model.StepResult;
+import com.annihilator.data.playground.model.Task;
+import com.annihilator.data.playground.model.TaskType;
+import com.annihilator.data.playground.notification.NotificationService;
 import com.annihilator.data.playground.reconsilation.DataPhantomReconciliationManager;
+import com.annihilator.data.playground.utility.DAGNotificationUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -33,6 +55,11 @@ public class DataPhantomPlaygroundExecutor implements Runnable {
     private final Map<String, Boolean> selectionMap;
     private final DataPhantomReconciliationManager reconciliationManager;
     private final MySQLConnector mySQLConnector;
+    private final NotificationDestinationDAO notificationDestinationDAO;
+    private final S3Service s3Service;
+    private final NotificationService notificationService;
+    private final ReconciliationMappingDAO reconciliationMappingDAO;
+    private final ReconciliationResultsDAO reconciliationResultsDAO;
 
     private int successCount = 0;
 
@@ -42,7 +69,7 @@ public class DataPhantomPlaygroundExecutor implements Runnable {
 
     private boolean isCancelled = false;
 
-    public DataPhantomPlaygroundExecutor(Playground playground, TaskDAO taskDAO, PlaygroundDAO playgroundDAO, PlaygroundRunHistoryDAO historyDAO, AdhocLimitedInputDAO adhocLimitedInputDAO, EMRService emrService, PlaygroundExecutionType executionType, DataPhantomReconciliationManager reconciliationManager, Set<String> cancelPlaygroundRequestSet, MySQLConnector mySQLConnector, boolean limitedRun, Map<String, Boolean> selectionMap) {
+    public DataPhantomPlaygroundExecutor(Playground playground, TaskDAO taskDAO, PlaygroundDAO playgroundDAO, PlaygroundRunHistoryDAO historyDAO, AdhocLimitedInputDAO adhocLimitedInputDAO, EMRService emrService, PlaygroundExecutionType executionType, DataPhantomReconciliationManager reconciliationManager, Set<String> cancelPlaygroundRequestSet, MySQLConnector mySQLConnector, boolean limitedRun, Map<String, Boolean> selectionMap, NotificationDestinationDAO notificationDestinationDAO, S3Service s3Service, NotificationService notificationService, ReconciliationMappingDAO reconciliationMappingDAO, ReconciliationResultsDAO reconciliationResultsDAO) {
         this.playground = playground;
         this.taskDAO = taskDAO;
         this.emrService = emrService;
@@ -55,6 +82,11 @@ public class DataPhantomPlaygroundExecutor implements Runnable {
         this.selectionMap = selectionMap;
         this.reconciliationManager = reconciliationManager;
         this.mySQLConnector = mySQLConnector;
+        this.notificationDestinationDAO = notificationDestinationDAO;
+        this.s3Service = s3Service;
+        this.notificationService = notificationService;
+        this.reconciliationMappingDAO = reconciliationMappingDAO;
+        this.reconciliationResultsDAO = reconciliationResultsDAO;
     }
 
     @Override
@@ -105,6 +137,7 @@ public class DataPhantomPlaygroundExecutor implements Runnable {
             processTasks(dagExecutionQueue, correlationId);
 
             reconciliationManager.startReconciliation(playground.getId());
+            notifySubscribers();
             updatePlaygroundMetaAfterCompletion();
         } catch (InterruptedException | SQLException e) {
             logger.error("Error executing playground {}: {}", playground.getName(), e.getMessage(), e);
@@ -138,6 +171,54 @@ public class DataPhantomPlaygroundExecutor implements Runnable {
 
         } catch (SQLException e) {
             logger.error("Error updating playground completion and the run history for {}: {}", playground.getName(), e.getMessage(), e);
+        }
+    }
+
+    private void notifySubscribers() {
+        try {
+            List<NotificationDestination> destinations = notificationDestinationDAO.getNotificationDestinationsByPlaygroundId(playground.getId());
+            
+            if (destinations.isEmpty()) {
+                logger.info("No notification destinations found for playground: {}", playground.getName());
+                return;
+            }
+
+            // Create DAG notification utility
+            DAGNotificationUtility dagNotifier = new DAGNotificationUtility(
+                playground.getId(),
+                taskDAO,
+                s3Service,
+                notificationService,
+                reconciliationMappingDAO,
+                reconciliationResultsDAO
+            );
+
+            // Determine execution status for email subject
+            Status finalStatus = Status.SUCCESS;
+            if (isCancelled) {
+                finalStatus = Status.CANCELLED;
+            } else if (successCount == 0) {
+                finalStatus = Status.FAILED;
+            } else if (failureCount > 0) {
+                finalStatus = Status.PARTIAL_SUCCESS;
+            }
+
+            String subject = String.format("Playground Execution %s - %s", finalStatus, playground.getName());
+
+            // Send notifications to all EMAIL destinations
+            for (NotificationDestination destination : destinations) {
+                if ("EMAIL".equals(destination.getDestinationType())) {
+                    try {
+                        dagNotifier.sendDAGExecutionNotification(subject, destination.getDestination());
+                        logger.info("Sent execution notification to: {}", destination.getDestination());
+                    } catch (Exception e) {
+                        logger.error("Failed to send notification to {}: {}", destination.getDestination(), e.getMessage(), e);
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            logger.error("Error notifying subscribers for playground {}: {}", playground.getName(), e.getMessage(), e);
         }
     }
 
