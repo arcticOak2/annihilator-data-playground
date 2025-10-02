@@ -19,11 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
@@ -134,9 +132,12 @@ public class DataPhantomSchedulerAssistant implements Runnable {
         long executionTime = getNextExecutionTimeInMillis(playground.getCronExpression());
         long currentTime = getCurrentTimeInMillis();
 
-        return currentTime - executionTime > concurrencyConfig.getPlaygroundExecutionGracePeriod() ||
-                (playground.getLastExecutedAt() > 0 &&
-                        System.currentTimeMillis() - playground.getLastExecutedAt() < concurrencyConfig.getPlaygroundMaxExecutionFrequency());
+        return executionTime == -1 ||
+                currentTime - executionTime > concurrencyConfig.getPlaygroundExecutionGracePeriod() ||
+                (
+                        playground.getLastExecutedAt() > 0 &&
+                        System.currentTimeMillis() - playground.getLastExecutedAt() < concurrencyConfig.getPlaygroundMaxExecutionFrequency()
+                );
     }
 
 
@@ -226,7 +227,9 @@ public class DataPhantomSchedulerAssistant implements Runnable {
                 return false;
             }
 
-            return newExecutionTime > -1;
+            long currentTimeFromMidnight = System.currentTimeMillis() % (24 * 60 * 60 * 1000L);
+
+            return newExecutionTime != -1 && newExecutionTime > currentTimeFromMidnight;
         } catch (SQLException e) {
 
             return false;
