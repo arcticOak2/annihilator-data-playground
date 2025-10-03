@@ -73,31 +73,34 @@ public class PrestoScriptGenerator {
         if (task.getUdfIds() != null && !task.getUdfIds().trim().isEmpty()) {
             script.add("echo \"Query: " + task.getQuery() + "\" | tee -a ${LOG_FILE}");
             script.add("hive -e \"SET hive.cli.print.header=true; " + escapeForShell(task.getQuery()) + "\" > " + tempFile);
-            script.add("presto_exit_code=$?");
+            script.add("if [[ $? != 0 ]]; then");
+            script.add("    exit 1");
+            script.add("fi");
         } else {
             script.add("echo \"Query: " + task.getQuery() + "\" | tee -a ${LOG_FILE}");
             script.add("presto-cli --catalog hive --schema core --output-format CSV_HEADER --execute \"" + escapeForShell(task.getQuery()) + "\" > " + tempFile);
-            script.add("presto_exit_code=$?");
+            script.add("if [[ $? != 0 ]]; then");
+            script.add("    exit 1");
+            script.add("fi");
         }
         
-        script.add("if [ ! -f " + tempFile + " ] || [ ! -s " + tempFile + " ]; then");
-        script.add("    presto_exit_code=1");
+        script.add("if [ ! -f " + tempFile + " ]; then");
+        script.add("    echo \"File '" + tempFile + "' not found.\"");
+        script.add("    exit 1");
         script.add("fi");
         
-        script.add("if [[ $presto_exit_code == 0 ]]; then");
-        script.add("    aws s3 cp " + tempFile + " " + outputPath);
-        script.add("    if [[ $? != 0 ]]; then");
-        script.add("        presto_exit_code=1");
-        script.add("    fi");
+        script.add("if [ ! -s " + tempFile + " ]; then");
+        script.add("    echo \"IS EMPTY FILE\"");
         script.add("fi");
+        
+        script.add("aws s3 cp " + tempFile + " " + outputPath);
+        script.add("if [[ $? != 0 ]]; then");
+        script.add("    exit 1");
+        script.add("fi");
+        script.add("");
+        script.add("rm -rf " + tempFile);
         script.add("");
         script.add("aws s3 cp ${LOG_FILE} ${LOG_S3_PATH}");
-        script.add("");
-        script.add("if [[ $presto_exit_code != 0 ]]; then");
-        script.add("    exit 1");
-        script.add("else");
-        script.add("    exit 0");
-        script.add("fi");
         
         return script;
     }
